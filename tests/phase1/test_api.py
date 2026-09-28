@@ -115,3 +115,14 @@ def test_invalid_websocket_cursor(client, user):
         with pytest.raises(WebSocketDisconnect) as error:
             ws.receive_json()
         assert error.value.code == 4400
+
+
+def test_final_response_is_owner_only_and_not_in_events(client, user):
+    task_id = idle_task(client, user)
+    service = client.app.state.agent
+    service.records[task_id].final_response = "Confidential review result"
+    assert client.get(f"/api/v1/agent/tasks/{task_id}").json()["final_response"] == "Confidential review result"
+    assert "Confidential review result" not in str(service.bus.replay(task_id))
+    client.app.dependency_overrides[get_current_user] = lambda: user.model_copy(update={"id": "different-owner"})
+    assert client.get(f"/api/v1/agent/tasks/{task_id}").status_code == 404
+    assert client.get(f"/api/v1/agent/tasks/{task_id}/events").status_code == 404

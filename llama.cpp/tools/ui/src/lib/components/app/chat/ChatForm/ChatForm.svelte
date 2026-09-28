@@ -64,6 +64,7 @@
 	import { onMount } from 'svelte';
 
 	interface Props {
+		agentMode?: boolean;
 		// Data
 		attachments?: DatabaseMessageExtra[];
 		uploadedFiles?: ChatUploadedFile[];
@@ -89,6 +90,7 @@
 	}
 
 	let {
+		agentMode = false,
 		attachments = [],
 		class: className = '',
 		disabled = false,
@@ -264,6 +266,7 @@
 	}
 
 	export function checkModelSelected(): boolean {
+		if (agentMode) return true;
 		if (!hasModelSelected) {
 			chatFormActionsRef?.openModelSelector();
 
@@ -620,6 +623,7 @@
 			{/if}
 
 			<ChatFormActions
+				{agentMode}
 				bind:this={chatFormActionsRef}
 				canSend={canSubmit}
 				class="px-3"

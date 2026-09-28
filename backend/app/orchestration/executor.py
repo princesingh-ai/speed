@@ -98,4 +98,11 @@ class Executor:
             for future in active.values():
                 future.cancel()
             await asyncio.gather(*active.values(), return_exceptions=True)
-        return all(s.status == "completed" for s in record.plan.steps)
+        ok = all(s.status == "completed" for s in record.plan.steps)
+        if ok:
+            # Keep actual model/verification output in the ownership-protected snapshot,
+            # never in operational event metadata. Plan order is deterministic.
+            responses = [results[id] for id in graph.topological_order()
+                         if graph.nodes[id].kind == "llm" and isinstance(results.get(id), str)]
+            record.final_response = responses[-1] if responses else "Workflow completed."
+        return ok

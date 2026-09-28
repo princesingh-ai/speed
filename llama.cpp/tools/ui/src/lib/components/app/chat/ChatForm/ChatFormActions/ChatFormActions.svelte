@@ -17,6 +17,7 @@
 	import { getFileTypeCategory } from '$lib/utils';
 
 	interface Props {
+		agentMode?: boolean;
 		canSend?: boolean;
 		canSubmit?: boolean;
 		class?: string;
@@ -35,6 +36,7 @@
 	}
 
 	let {
+		agentMode = false,
 		canSend = false,
 		canSubmit = false,
 		class: className = '',
@@ -209,9 +211,9 @@
 		<ChatFormActionRecord {disabled} {hasAudioModality} {isLoading} {isRecording} {onMicClick} />
 	{:else}
 		<ChatFormActionSubmit
-			canSend={canSend && (showModelSelector ? hasModelSelected && isSelectedModelInCache : true)}
+			canSend={canSend && (agentMode || (showModelSelector ? hasModelSelected && isSelectedModelInCache : true))}
 			{disabled}
-			showErrorState={showModelSelector && hasModelSelected && !isSelectedModelInCache}
+			showErrorState={!agentMode && showModelSelector && hasModelSelected && !isSelectedModelInCache}
 			tooltipLabel={submitTooltip}
 		/>
 	{/if}

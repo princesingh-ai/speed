@@ -21,6 +21,7 @@ class AgentRecord:
     plan: ExecutionPlan | None = None
     artifacts: list = field(default_factory=list)
     has_mock: bool = False
+    final_response: str = ""
 
 
 class AgentService:
@@ -83,6 +84,7 @@ class AgentService:
             "artifacts": [{**a, "download_url": f"/api/v1/agent/tasks/{task_id}/artifacts/{a['id']}"} for a in record.artifacts],
             "last_sequence": self.bus.sequences[task_id], "has_mock": record.has_mock,
             "summary": record.task.error or ("Human review required." if record.has_mock else ""),
+            "final_response": record.final_response,
         }
 
     async def close(self):

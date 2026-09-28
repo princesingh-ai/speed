@@ -111,6 +111,7 @@ export type DatabaseMessageExtra =
 	| DatabaseMessageExtraLegacyContext;
 
 export interface DatabaseMessage {
+	speedTask?: import('$lib/speed/types').TaskLink;
 	id: string;
 	convId: string;
 	type: ChatMessageType;

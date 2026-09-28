@@ -1,6 +1,7 @@
 import { browser } from '$app/environment';
 import { SNAP_AUTH_TOKEN_LOCALSTORAGE_KEY } from '$lib/constants';
 import { AuthService } from '$lib/services/auth.service';
+import { speedSession } from '$lib/speed/session.svelte';
 import type { SnapAuthUser } from '$lib/types';
 
 type AuthStatus = 'checking' | 'authenticated' | 'unauthenticated';
@@ -75,6 +76,7 @@ class AuthStore {
 	}
 
 	private clearAuthState(status: AuthStatus): void {
+		speedSession.logout();
 		if (browser) {
 			localStorage.removeItem(SNAP_AUTH_TOKEN_LOCALSTORAGE_KEY);
 		}

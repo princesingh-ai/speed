@@ -21,7 +21,7 @@
 		message: DatabaseMessage;
 		toolMessages?: DatabaseMessage[];
 		onContinue?: () => void;
-		onRegenerate: (modelOverride?: string) => void;
+		onRegenerate?: (modelOverride?: string) => void;
 		textareaElement?: HTMLTextAreaElement;
 	}
 
@@ -135,6 +135,7 @@
 		: undefined}
 	aria-label="Assistant message with actions"
 	class="chat-message-assistant text-md group w-full leading-7.5 {className}"
+	class:speed-assistant={!!message.speedTask}
 	role="group"
 >
 	{#if showProcessingInfoTop}
@@ -195,7 +196,7 @@
 </div>
 
 <style>
-	:global(.chat-message):last-child .chat-message-assistant {
+	:global(.chat-message):last-child .chat-message-assistant:not(.speed-assistant) {
 		--assistant-min-height-offset: calc(
 			var(--last-user-message-height, 19rem) + var(--chat-form-height, 6rem) +
 				var(--chat-form-bottom-position, 0.5rem) + var(--chat-form-padding-top, 6rem) +

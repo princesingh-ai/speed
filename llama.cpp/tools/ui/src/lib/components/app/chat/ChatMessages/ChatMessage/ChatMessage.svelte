@@ -1,4 +1,5 @@
 <script lang="ts">
+	import SpeedAgentActivity from '../../SpeedAgent/SpeedAgentActivity.svelte';
 	import { goto } from '$app/navigation';
 	import {
 		ChatMessageAssistant,
@@ -413,6 +414,12 @@
 		<ChatMessageSynthetic class={className} {message} />
 	{:else if message.role === MessageRole.USER}
 		<ChatMessageUser class={className} {isLastUserMessage} {message} {nextAssistantMessage} />
+	{:else if message.speedTask}
+		<SpeedAgentActivity {message}>
+			{#if message.content}
+				<ChatMessageAssistant bind:textareaElement class={className} {isLastAssistantMessage} {message} {toolMessages} />
+			{/if}
+		</SpeedAgentActivity>
 	{:else}
 		<ChatMessageAssistant
 			bind:textareaElement

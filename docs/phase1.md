@@ -143,6 +143,13 @@ Mock-derived content gets a visible document notice; the DOCX container itself i
 real. Content defaults to human-review language, not an automatic approval claim.
 API reference: https://python-docx.readthedocs.io/en/latest/user/quickstart.html
 
+## Normal chat and developer inspection
+
+The Phase 1 experience is now integrated into the existing llama/SPEED chat.
+See [Phase 1 chat integration](phase1-chat.md) for connection, persistence,
+source architecture and server-only build/test instructions. `/phase1/` below
+remains the developer inspection and fallback demo page.
+
 ## Launch on an authorized execution machine only
 
 **These instructions were not run during the edit-only Mac session.** No local

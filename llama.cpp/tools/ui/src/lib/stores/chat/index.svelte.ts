@@ -19,6 +19,10 @@ import {
 } from '$lib/enums';
 import { ChatService } from '$lib/services/chat.service';
 import { DatabaseService } from '$lib/services/database.service';
+import { speedSession } from '$lib/speed/session.svelte';
+import { startTask } from '$lib/speed/api';
+import { saveTaskMessage } from '$lib/speed/messages';
+import type { TaskLink } from '$lib/speed/types';
 // direct imports between stores, not via the barrel, to avoid circular deps
 import { agenticStore } from '$lib/stores/agentic/index.svelte';
 import { chatActivityStore } from '$lib/stores/chat/activity.svelte';
@@ -50,6 +54,7 @@ import {
 import { SvelteMap } from 'svelte/reactivity';
 
 class ChatStore implements ChatStreamHost, ChatFlowsHost {
+	agentSubmitting = $state(false);
 	chatReasoningStates = new SvelteMap<string, boolean>();
 	chatStreamingStates = new SvelteMap<
 		string,
@@ -605,10 +610,22 @@ class ChatStore implements ChatStreamHost, ChatFlowsHost {
 		this.pendingDraftMessage = message;
 		this.pendingDraftFiles = [...files];
 	}
-	async sendMessage(content: string, extras?: DatabaseMessageExtra[]): Promise<void> {
+	async sendMessage(content: string, extras?: DatabaseMessageExtra[], useSpeed = speedSession.enabled): Promise<void> {
 		if (!content.trim() && (!extras || extras.length === 0)) return;
+		const speed = useSpeed ? {
+			token: speedSession.token, ownerId: speedSession.ownerId, options: { ...speedSession.options }
+		} : null;
 
 		const activeConv = conversationsStore.activeConversation;
+		if (speed && (!speed.token || extras?.length || mcpStore.resources.hasAttachments
+			|| this.agentSubmitting || content.length > 8000 || (activeConv && (this.isChatLoadingInternal(activeConv.id) || agenticStore.isRunning(activeConv.id))))) {
+			this.showErrorDialog({ type: ErrorDialogType.SERVER, message: 'Connect to SPEED, remove attachments, and wait for the current chat response before starting an agent task.' });
+			return;
+		}
+		if (speed) {
+			await this.sendAgentMessage(content, speed);
+			return;
+		}
 
 		// If agentic loop is running, inject as a steering message instead of starting a new flow
 		if (activeConv && agenticStore.isRunning(activeConv.id)) {
@@ -731,6 +748,45 @@ class ChatStore implements ChatStreamHost, ChatFlowsHost {
 				type: dialogType
 			});
 		}
+	}
+
+	private async sendAgentMessage(content: string, speed: {
+		token: string; ownerId: string; options: import('$lib/speed/types').TaskOptions
+	}): Promise<void> {
+		this.agentSubmitting = true;
+		this.cancelPreEncode();
+		const existing = conversationsStore.activeConversation;
+		const parent = conversationsStore.activeMessages.at(-1)?.id ?? existing?.currNode;
+		let assistant: DatabaseMessage | undefined;
+		try {
+			const convId = existing?.id ?? await conversationsStore.createConversation();
+			const parentId = parent ?? await DatabaseService.createRootMessage(convId);
+			const user = await DatabaseService.createMessageBranch({
+				children: [], content, convId, role: MessageRole.USER, timestamp: Date.now(),
+				type: MessageType.TEXT, parent: parentId
+			}, parentId);
+			const link: TaskLink = { conversationId: convId, userMessageId: user.id, ownerId: speed.ownerId };
+			assistant = await DatabaseService.createMessageBranch({
+				children: [], content: '', convId, role: MessageRole.ASSISTANT, timestamp: Date.now(),
+				type: MessageType.TEXT, parent: user.id, model: null, speedTask: link
+			}, user.id);
+			if (conversationsStore.activeConversation?.id === convId) {
+				conversationsStore.addMessageToActive(user);
+				conversationsStore.addMessageToActive(assistant);
+				conversationsStore.activeConversation.currNode = assistant.id;
+			}
+			conversationsStore.updateConversationTimestamp(convId);
+			if (!existing) await conversationsStore.applyTitleFromContent(convId, content);
+			const task = await startTask(content, speed.options, speed.token);
+			assistant.speedTask = { ...link, taskId: task.task_id };
+			await saveTaskMessage(assistant, assistant.speedTask);
+		} catch (error) {
+			const detail = error instanceof Error ? error.message : 'Unable to create task.';
+			if (assistant?.speedTask) await saveTaskMessage(assistant, { ...assistant.speedTask,
+				error: `${detail} Not retried automatically; the request may have reached the server.`
+			}).catch(() => this.showErrorDialog({ type: ErrorDialogType.SERVER, message: 'Unable to save this task in the browser. Keep this conversation open to retain its live task handle.' }));
+			else this.showErrorDialog({ type: ErrorDialogType.SERVER, message: detail });
+		} finally { this.agentSubmitting = false; }
 	}
 
 	setChatLoading(convId: string, loading: boolean): void {
@@ -1015,7 +1071,7 @@ class ChatStore implements ChatStreamHost, ChatFlowsHost {
 					const pending = this.consumePendingMessage(convId);
 
 					if (pending) {
-						this.sendMessage(pending.content, pending.extras);
+						this.sendMessage(pending.content, pending.extras, false);
 					}
 
 					return;
@@ -1151,7 +1207,7 @@ class ChatStore implements ChatStreamHost, ChatFlowsHost {
 				const pending = agenticStore.consumePendingSteeringMessage(convId);
 
 				if (pending) {
-					await this.sendMessage(pending.content, pending.extras);
+					await this.sendMessage(pending.content, pending.extras, false);
 				}
 
 				return;
@@ -1211,7 +1267,7 @@ class ChatStore implements ChatStreamHost, ChatFlowsHost {
 					const pending = this.consumePendingMessage(convId);
 
 					if (pending) {
-						await this.sendMessage(pending.content, pending.extras);
+						await this.sendMessage(pending.content, pending.extras, false);
 					}
 				},
 				onCompletionId: streamCallbacks.onCompletionId,

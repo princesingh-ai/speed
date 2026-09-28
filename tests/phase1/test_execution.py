@@ -135,6 +135,7 @@ def test_executor_parallel_merge_failure_and_bound(user, fail):
         if fail:
             assert steps[-1].status == "blocked" and steps[-2].status == "blocked"
         else:
+            assert record.final_response == "last"
             lifecycle = [e.event_type for e in bus.replay("t") if e.step_id == "read"]
             assert lifecycle == ["step.ready", "step.started", "step.completed"]
             assert "branch.merged" in [e.event_type for e in bus.replay("t")]
@@ -160,6 +161,10 @@ def test_deterministic_document_end_to_end(user, workspace):
             assert kind in types
         assert types.index("file.read") < types.index("artifact.created") < types.index("task.completed")
         assert "worn seal" not in str(service.bus.replay(record.task.id))
+        snapshot = service.snapshot(record.task.id)
+        assert snapshot["final_response"] == record.final_response
+        assert "DEMONSTRATION" in snapshot["final_response"]
+        assert "worn seal" in snapshot["final_response"]
         await service.close()
     asyncio.run(scenario())
 
@@ -171,6 +176,7 @@ def test_task_failure_blocks_artifact(user):
         await asyncio.gather(*service.jobs)
         assert record.task.status.value == "failed"
         assert not record.artifacts
+        assert service.snapshot(record.task.id)["final_response"] == ""
         assert any(s.status == "blocked" for s in record.plan.steps)
     asyncio.run(scenario())
 

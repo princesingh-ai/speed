@@ -3,8 +3,11 @@
 	import { page } from '$app/state';
 	import { ChatForm } from '$lib/components/app';
 	import { useDraftMessages } from '$lib/hooks/use-draft-messages.svelte';
-	import { deviceStore } from '$lib/stores';
+	import { chatStore, deviceStore } from '$lib/stores';
 	import { onMount } from 'svelte';
+	import SpeedControls from '../SpeedAgent/SpeedControls.svelte';
+	import { speedSession } from '$lib/speed/session.svelte';
+	import { mcpStore } from '$lib/stores/mcp/index.svelte';
 
 	interface Props {
 		class?: string;
@@ -34,12 +37,13 @@
 
 	let chatFormRef: ChatForm | undefined = $state(undefined);
 	let formWrapperEl: HTMLDivElement | undefined = $state();
+	let agentError = $state('');
 	let chatId = $derived(page.params.id as string | undefined);
 
 	$effect(() => {
 		if (!formWrapperEl) return;
 
-		const formEl = formWrapperEl.querySelector('form') as HTMLElement | null;
+		const formEl = formWrapperEl;
 
 		if (!formEl) return;
 
@@ -79,10 +83,17 @@
 	}
 
 	async function handleSubmit() {
-		if ((!message.trim() && uploadedFiles.length === 0) || disabled || hasLoadingAttachments)
+		if ((!message.trim() && uploadedFiles.length === 0) || disabled || chatStore.agentSubmitting || hasLoadingAttachments)
 			return;
 
-		if (!chatFormRef?.checkModelSelected()) return;
+		agentError = '';
+		if (speedSession.enabled) {
+			if (!speedSession.token) agentError = 'Connect to SPEED in Agent settings first.';
+			else if (uploadedFiles.length || mcpStore.resources.hasAttachments) agentError = 'SPEED reads server workspace paths. Remove attachments or turn off SPEED agent to send them in chat.';
+			else if (isLoading) agentError = 'Wait for the current chat response before starting an agent task.';
+			else if (message.trim().length > 8000) agentError = 'SPEED prompts must be at most 8000 characters.';
+			if (agentError) return;
+		} else if (!chatFormRef?.checkModelSelected()) return;
 
 		const messageToSend = message.trim();
 		const filesToSend = [...uploadedFiles];
@@ -148,12 +159,15 @@
 </script>
 
 <div bind:this={formWrapperEl} class="chat-screen-form-wrapper">
+	<SpeedControls />
+	{#if agentError}<p class="mx-auto mb-2 max-w-3xl px-3 text-xs text-destructive" role="alert">{agentError}</p>{/if}
 	<ChatForm
+		agentMode={speedSession.enabled}
 		bind:this={chatFormRef}
 		bind:uploadedFiles
 		bind:value={message}
 		class="mx-auto max-w-3xl {className}"
-		{disabled}
+		disabled={disabled || chatStore.agentSubmitting}
 		{isLoading}
 		onFilesAdd={handleFilesAdd}
 		{onStop}
