@@ -1,0 +1,36 @@
+backend/
+  app/
+    api/
+    core/
+    inference/
+    routing/
+    security/
+    task/
+    tools/
+
+config/
+  models/
+    models.yaml
+
+docs/
+
+infrastructure/
+  nginx/
+    conf/
+    html/
+
+llama.cpp/        # source only, if we decide to track it
+models/
+  README          # only this, if desired
+
+tests/
+  task_routing/
+
+.env.example
+.gitignore
+.python-version
+README.md
+pyproject.toml
+uv.lock
+
+.env
