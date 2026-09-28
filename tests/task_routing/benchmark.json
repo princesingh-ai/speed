@@ -1,0 +1,285 @@
+[
+  {
+    "text": "bro can you make a python function that checks if a number is prime i keep messing up the loop",
+    "expected": "coding"
+  },
+  {
+    "text": "i have this cpp program and it crashes when i enter 0 can you figure out whats wrong",
+    "expected": "coding"
+  },
+  {
+    "text": "write me a quick script that goes through a folder and renames all the pdf files with the date in front",
+    "expected": "coding"
+  },
+  {
+    "text": "how do i reverse a linked list in c++ without using recursion",
+    "expected": "coding"
+  },
+  {
+    "text": "can you fix this python thing for me, it says index out of range somewhere but i dont understand why",
+    "expected": "coding"
+  },
+  {
+    "text": "i need a javascript function which takes an array and removes duplicate values",
+    "expected": "coding"
+  },
+  {
+    "text": "make a simple fastapi endpoint that accepts a username and returns it as json",
+    "expected": "coding"
+  },
+  {
+    "text": "why is my for loop not stopping here and how should i change it",
+    "expected": "coding"
+  },
+  {
+    "text": "give me python code to read a csv and calculate the average of each column",
+    "expected": "coding"
+  },
+  {
+    "text": "i need to connect postgres to my python backend whats the normal way to do it",
+    "expected": "coding"
+  },
+  {
+    "text": "write a bash command that finds all files bigger than 1gb in this directory",
+    "expected": "coding"
+  },
+  {
+    "text": "my api returns 500 but i dont know where its happening can you show me how to add proper error handling",
+    "expected": "coding"
+  },
+  {
+    "text": "implement binary search but make it iterative not recursive",
+    "expected": "coding"
+  },
+  {
+    "text": "can you write a python class for a queue using two stacks",
+    "expected": "coding"
+  },
+  {
+    "text": "i have a list of students and marks can you write code to sort them by marks highest first",
+    "expected": "coding"
+  }
+,
+  {
+    "text": "if i have 5 apples and give 2 away and then get 7 more how many do i have now",
+    "expected": "reasoning"
+  },
+  {
+    "text": "wait so if x plus 7 is 19 then x should be 12 right",
+    "expected": "reasoning"
+  },
+  {
+    "text": "a train goes 120 km in 2 hours and then another 180 km in 3 hours whats the average speed overall",
+    "expected": "reasoning"
+  },
+  {
+    "text": "there are three boxes and every label is wrong, one has apples one oranges and one has both, whats the minimum number of fruits i need to pick to figure them all out",
+    "expected": "reasoning"
+  },
+  {
+    "text": "if today is monday what day will it be 100 days from now",
+    "expected": "reasoning"
+  },
+  {
+    "text": "i bought something for 800 and its 15 percent off so how much am i actually paying",
+    "expected": "reasoning"
+  },
+  {
+    "text": "if 3 workers finish a job in 12 days assuming they all work at the same rate how long would 6 workers take",
+    "expected": "reasoning"
+  },
+  {
+    "text": "a room has 4 corners and there is a cat in each corner and every cat sees 3 cats, how many cats are there",
+    "expected": "reasoning"
+  },
+  {
+    "text": "i dont get this probability thing if i flip a fair coin three times whats the chance of getting heads every time",
+    "expected": "reasoning"
+  },
+  {
+    "text": "there are 10 people in a room and everyone shakes hands with everyone else exactly once how many handshakes happen",
+    "expected": "reasoning"
+  },
+  {
+    "text": "if a number is divisible by both 3 and 4 does that automatically mean its divisible by 12",
+    "expected": "reasoning"
+  },
+  {
+    "text": "a car travels half the distance at 30 kmph and the other half at 60 kmph, is the average speed 45",
+    "expected": "reasoning"
+  },
+  {
+    "text": "i have 2 red balls and 3 blue balls in a bag and pick one without looking whats the probability its red",
+    "expected": "reasoning"
+  },
+  {
+    "text": "if all bloops are razzies and some razzies are green does it mean some bloops are green",
+    "expected": "reasoning"
+  },
+  {
+    "text": "which is bigger 2 to the power of 10 or 10 factorial and how can i tell without calculating everything",
+    "expected": "reasoning"
+  }
+,
+
+  {
+    "text": "hey what exactly is ram and why does my laptop need it",
+    "expected": "general"
+  },
+  {
+    "text": "why does the sky look blue during the day but sometimes red around sunset",
+    "expected": "general"
+  },
+  {
+    "text": "can you explain photosynthesis like im completely new to biology",
+    "expected": "general"
+  },
+  {
+    "text": "what is the actual difference between a cpu and a gpu",
+    "expected": "general"
+  },
+  {
+    "text": "why do people use databases instead of just saving everything in files",
+    "expected": "general"
+  },
+  {
+    "text": "what does an operating system actually do all day",
+    "expected": "general"
+  },
+  {
+    "text": "can you explain what an api is without making it sound super complicated",
+    "expected": "general"
+  },
+  {
+    "text": "why does ice float on water",
+    "expected": "general"
+  },
+  {
+    "text": "what is the difference between machine learning and deep learning",
+    "expected": "general"
+  },
+  {
+    "text": "why do airplanes stay in the air",
+    "expected": "general"
+  },
+  {
+    "text": "what exactly happens when i type a website address into my browser",
+    "expected": "general"
+  },
+  {
+    "text": "what is docker actually used for, i keep hearing about containers",
+    "expected": "general"
+  },
+  {
+    "text": "can you explain what an llm is in simple terms",
+    "expected": "general"
+  },
+  {
+    "text": "why does my phone battery get worse after a few years",
+    "expected": "general"
+  },
+  {
+    "text": "what is the difference between wifi and mobile data",
+    "expected": "general"}
+
+,
+
+  {
+    "text": "why is binary search faster than checking every element one by one",
+    "expected": "reasoning"
+  },
+  {
+    "text": "explain how binary search works and show me a small example",
+    "expected": "general"
+  },
+  {
+    "text": "how would you design an algorithm to find the shortest path between two cities",
+    "expected": "reasoning"
+  },
+  {
+    "text": "write an algorithm to find the shortest path between two nodes in a graph",
+    "expected": "coding"
+  },
+  {
+    "text": "why does this python code have O(n squared) complexity",
+    "expected": "reasoning"
+  },
+  {
+    "text": "explain what O(n squared) means",
+    "expected": "general"
+  },
+  {
+    "text": "can you implement merge sort for me",
+    "expected": "coding"
+  },
+  {
+    "text": "can you explain why merge sort is O(n log n)",
+    "expected": "reasoning"
+  },
+  {
+    "text": "i need to understand recursion before my programming exam",
+    "expected": "general"
+  },
+  {
+    "text": "why does recursion eventually stop instead of running forever",
+    "expected": "reasoning"
+  },
+  {
+    "text": "make me a program that calculates the fibonacci sequence",
+    "expected": "coding"
+  },
+  {
+    "text": "why does the fibonacci sequence grow so quickly",
+    "expected": "reasoning"
+  }
+,
+  {
+    "text": "umm so basically i have this huge csv from college and i want to find out which student has the highest marks and maybe sort everyone also idk how to do it",
+    "expected": "coding"
+  },
+  {
+    "text": "okay imagine i have 100 rupees and spend 35 then someone gives me 20 how much is left",
+    "expected": "reasoning"
+  },
+  {
+    "text": "im confused about what a gpu actually does like why cant the cpu just do all the same stuff",
+    "expected": "general"
+  },
+  {
+    "text": "bro my python code works for some inputs but randomly gives none for others what could be happening",
+    "expected": "coding"
+  },
+  {
+    "text": "so if every dog is an animal and tommy is a dog does that mean tommy is an animal",
+    "expected": "reasoning"
+  },
+  {
+    "text": "why do we need virtual environments in python i see people making them everywhere",
+    "expected": "general"
+  },
+  {
+    "text": "i have 8gb ram and my program says it needs 12gb what actually happens when i run it",
+    "expected": "general"
+  },
+  {
+    "text": "if something costs 1200 and goes up by 20 percent and then down by 20 percent am i back at 1200",
+    "expected": "reasoning"
+  },
+  {
+    "text": "can you just make this loop work i need it to keep asking for a number until the user enters a positive one",
+    "expected": "coding"
+  },
+  {
+    "text": "what happens to the internet when a submarine cable gets damaged",
+    "expected": "general"
+  },
+  {
+    "text": "if i have 4 different shirts and 3 different pants how many different outfits can i make",
+    "expected": "reasoning"
+  },
+  {
+    "text": "i dont understand why my computer gets slower when i have 50 chrome tabs open",
+    "expected": "general"
+  }
+]
+
