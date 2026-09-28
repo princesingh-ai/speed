@@ -1,27 +1,18 @@
 from app.security.models import Permission
 from app.security.policy import ResourceScope
-from app.tools.builtin.filesystem import list_files, read_file
+from app.tools.builtin.filesystem import list_files, read_file, write_file
 from app.tools.models import ToolDefinition
 from app.tools.registry import tool_registry
 
 
 def register_builtin_tools() -> None:
-    tool_registry.register(
-        ToolDefinition(
-            name="file.list",
-            description="List files and directories in an allowed location.",
-            permission=Permission.FILE_LIST,
-            scope=ResourceScope.WORKSPACE,
-        ),
-        list_files,
-    )
-
-    tool_registry.register(
-    ToolDefinition(
-        name="file.read",
-        description="Read a text file from an allowed location.",
-        permission=Permission.FILE_READ,
-        scope=ResourceScope.WORKSPACE,
-    ),
-    read_file,
-)
+    for name, handler, permission in (
+        ("file.list", list_files, Permission.FILE_LIST),
+        ("file.read", read_file, Permission.FILE_READ),
+        ("file.write", write_file, Permission.FILE_WRITE),
+    ):
+        if tool_registry.get_definition(name) is None:
+            tool_registry.register(ToolDefinition(
+                name=name, description=handler.__name__.replace("_", " "),
+                permission=permission, scope=ResourceScope.WORKSPACE,
+            ), handler)

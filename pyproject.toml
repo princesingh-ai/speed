@@ -13,9 +13,17 @@ dependencies = [
     "pyjwt>=2.15.0",
     "pyyaml>=6.0.3",
     "uvicorn>=0.53.0",
+    "python-docx>=1.2,<2",
+    "mcp>=2,<3",
+    "websockets>=15,<17",
 ]
 
 [dependency-groups]
 dev = [
     "pytest>=9.1.1",
 ]
+
+[tool.pytest.ini_options]
+pythonpath = ["backend"]
+testpaths = ["tests/phase1"]
+markers = ["docker: optional real Docker integration (requires SPEED_TEST_DOCKER=1)"]

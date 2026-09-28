@@ -56,7 +56,7 @@ def get_consent_request(
         return None
 
     if (
-        request.status == ConsentStatus.PENDING
+        request.status in {ConsentStatus.PENDING, ConsentStatus.APPROVED}
         and time.time() > request.expires_at
     ):
         request.status = ConsentStatus.EXPIRED

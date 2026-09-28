@@ -4,7 +4,8 @@ import httpx
 class LlamaClient:
     def __init__(self, base_url: str):
         self.base_url = base_url.rstrip("/")
-        self.client = httpx.AsyncClient(timeout=120.0)
+        # Local inference must not inherit an external HTTP proxy from the host.
+        self.client = httpx.AsyncClient(timeout=120.0, trust_env=False)
 
     async def chat(
         self,

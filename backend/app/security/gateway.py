@@ -29,8 +29,7 @@ class SecurityGateway:
         task_id: str | None = None
     ) -> AuthorizationResult:
 
-        if task_id is not None:
-            task = task_service.get_task(task_id)
+        task = task_service.get_task(task_id) if task_id is not None else None
 
         if task is None:
             return AuthorizationResult(

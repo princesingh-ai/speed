@@ -1,0 +1,5 @@
+Sample inspection report — demonstration data
+Equipment: coolant pump P-42. Inspection date: 2026-09-01.
+The pump operated within its normal temperature range.
+A worn inlet seal requires replacement before the next maintenance interval.
+Recommendation: conditionally approve continued operation, subject to the responsible engineer's review and seal replacement schedule.

@@ -88,6 +88,7 @@ def evaluate_policy(
         Permission.DOCUMENT_READ,
         Permission.DOCUMENT_CREATE,
         Permission.CHAT_USE,
+        Permission.AGENT_EXECUTE,
     }:
         return (
             True,

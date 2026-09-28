@@ -1,0 +1,2 @@
+Demonstration approval policy
+An approval note must distinguish findings from recommendations. Open maintenance actions require an owner and target date. AI output does not authorize operation.

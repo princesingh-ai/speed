@@ -1,6 +1,6 @@
 from enum import Enum
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class TaskType(str, Enum):
@@ -11,3 +11,4 @@ class TaskType(str, Enum):
 
 class TaskAnalysis(BaseModel):
     task_type: TaskType
+    confidence: float | None = Field(default=None, ge=0, le=1)

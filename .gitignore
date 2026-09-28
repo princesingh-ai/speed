@@ -34,3 +34,9 @@ pyproject.toml
 uv.lock
 
 .env
+# Phase 1 runtime outputs and local caches
+/outputs/
+.venv/
+.pytest_cache/
+__pycache__/
+*.pyc

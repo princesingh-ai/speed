@@ -2,6 +2,8 @@ from app.security.gateway import security_gateway
 from app.security.models import User
 from app.tools.models import ToolRequest, ToolResult, ToolStatus
 from app.tools.registry import tool_registry
+from app.orchestration.events import current_trace
+from time import perf_counter
 
 
 class ToolRuntime:
@@ -60,8 +62,25 @@ class ToolRuntime:
                 error=f"No handler registered for tool: {request.tool_name}",
             )
 
+        trace = current_trace.get()
+        started = perf_counter()
+        if trace:
+            trace.emit("tool.started", request.tool_name, "running",
+                       metadata={"tool_name": request.tool_name})
         try:
             result = handler(**request.arguments)
+
+            if trace:
+                metadata = {key: value for key, value in result.items() if key in {
+                    "path", "size", "created", "lines_added", "lines_removed"}}
+                if request.tool_name.startswith("file."):
+                    event_type = request.tool_name
+                    if request.tool_name == "file.write":
+                        event_type = "file.created" if result.get("created") else "file.updated"
+                    trace.emit(event_type, f"{event_type} {result.get('path', '')}",
+                               metadata=metadata)
+                trace.emit("tool.completed", request.tool_name,
+                           duration_ms=int((perf_counter() - started) * 1000))
 
             return ToolResult(
                 status=ToolStatus.SUCCESS,
@@ -71,6 +90,8 @@ class ToolRuntime:
             )
 
         except PermissionError as exc:
+            if trace:
+                trace.emit("tool.failed", "File access denied", "failed")
             return ToolResult(
                 status=ToolStatus.DENIED,
                 tool_name=request.tool_name,
@@ -79,6 +100,8 @@ class ToolRuntime:
             )
 
         except Exception as exc:
+            if trace:
+                trace.emit("tool.failed", "Tool execution failed", "failed")
             return ToolResult(
                 status=ToolStatus.ERROR,
                 tool_name=request.tool_name,
