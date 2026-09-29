@@ -10,9 +10,11 @@ Ordinary chat remains the default, including small questions, manual model
 selection, existing tool calls, MCP attachments and the llama agentic loop.
 Sign in once through **Sign in to SPEED**, then enable **SPEED agent** above the
 composer. Open **Agent settings** and select Document, Document + local MCP, or
-Coding sandbox. Chat and agent APIs share the backend-verified JWT. The token is
-stored under `SPEED.auth.accessToken`; refresh verifies it through `/api/v1/auth/me`.
-Logout and expired-session responses clear both chat and agent authentication.
+Coding sandbox. With SPEED_DEMO_AUTH=true, login checks admin / admin-password
+locally and stores only the username under `SPEED.auth.demoUser`. No login/me
+API exchange occurs. Chat and agent requests share the fixed demo principal.
+With demo mode disabled (default), the existing verified JWT flow remains.
+Logout and rejected-session responses clear both chat and agent authentication.
 The local-agent label describes execution on the server workspace, not an
 air-gap or a guarantee about all ordinary-chat tools.
 
@@ -86,7 +88,8 @@ recreate a deleted message. A copied/forked link with changed conversation or
 parent IDs cannot subscribe or download; its existing prose remains readable.
 Task connections are not shared across owners. Snapshots and final messages are
 stored in the browser, just like existing chat history. The separate auth storage
-key contains the verified SPEED JWT; task messages never contain tokens.
+key contains a JWT only in real-auth mode; demo storage contains only the username.
+Task messages never contain credentials.
 
 Approve/Reject uses the existing authenticated permission endpoints and requires
 an explicit click. Backend RBAC, ownership, expiry and task-bound WebSocket
@@ -145,7 +148,8 @@ not `pathname` (which stays `/` across hash routes). While authentication is
 checking it does not redirect. An unauthenticated protected route enters
 `#/login`; successful login or an already-authenticated login route enters `#/`.
 Settled public/protected routes do not redirect. The subsequent unified SPEED
-login uses backend JWT authentication; ownership and RBAC remain authoritative.
+login supports local demo authentication behind SPEED_DEMO_AUTH, or backend JWT
+authentication by default; ownership and RBAC remain authoritative.
 
 | Gateway route | Behavior |
 | --- | --- |

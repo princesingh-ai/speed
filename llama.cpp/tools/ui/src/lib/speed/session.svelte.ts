@@ -3,6 +3,7 @@ import type { SpeedAuthUser } from '$lib/types';
 
 class SpeedSession {
 	enabled = $state(false);
+	// Transport credential: a JWT in real-auth mode, or the fixed demo marker.
 	token = $state('');
 	ownerId = $state('');
 	username = $state('');
@@ -22,5 +23,5 @@ class SpeedSession {
 	}
 }
 
-// AuthStore supplies the same verified SPEED identity used by chat.
+// AuthStore supplies the same SPEED identity used by chat.
 export const speedSession = new SpeedSession();

@@ -2,6 +2,8 @@
 
 For the unified SPEED login, model configuration/health and current Linux
 validation sequence, see [the runtime runbook](phase1-runtime.md).
+The integrated chat supports local demo login with SPEED_DEMO_AUTH=true; the
+default false preserves JWT authentication. Demo mode does not auto-approve tools.
 
 ## Architecture
 

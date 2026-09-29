@@ -1,19 +1,29 @@
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, status, Header
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from app.security.jwt import decode_access_token
 from app.security.models import Permission, User
 from app.security.store import get_user, get_user_permissions
+from app.core.config import settings
 
 
-bearer_scheme = HTTPBearer()
+bearer_scheme = HTTPBearer(auto_error=False)
+DEMO_PRINCIPAL_ID = "speed-demo-admin"
 
 
 def get_current_user(
-    credentials: HTTPAuthorizationCredentials = Depends(
+    credentials: HTTPAuthorizationCredentials | None = Depends(
         bearer_scheme
     ),
+    demo_user: str | None = Header(default=None, alias="X-Speed-Demo-User"),
 ) -> User:
+    if demo_user is not None:
+        if not settings.speed_demo_auth or demo_user != DEMO_PRINCIPAL_ID:
+            raise HTTPException(status_code=401, detail="Demo authentication unavailable")
+        return User(id=DEMO_PRINCIPAL_ID, username="admin", roles=["admin"], password_hash="unused")
+
+    if credentials is None:
+        raise HTTPException(status_code=401, detail="Not authenticated")
 
     try:
         payload = decode_access_token(

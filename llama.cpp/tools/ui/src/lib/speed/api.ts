@@ -1,5 +1,6 @@
 import type { Artifact, ExecutionEvent, Snapshot, TaskOptions } from './types';
 import { terminal } from './types';
+import { speedAuthHeaders } from './auth';
 
 export class SpeedError extends Error {
 	constructor(public status: number) {
@@ -12,7 +13,7 @@ export class SpeedError extends Error {
 async function checkResponse(response: Response, token: string) {
 	if (response.status === 401) {
 		const { authStore } = await import('$lib/stores/auth.svelte');
-		if (authStore.token === token) authStore.handleUnauthorized();
+		if (authStore.credential === token) authStore.handleUnauthorized();
 	}
 	if (!response.ok) throw new SpeedError(response.status);
 }
@@ -21,7 +22,7 @@ export async function request<T>(path: string, token: string, init: RequestInit 
 	const response = await fetch(`/api/v1/${path}`, {
 		...init, cache: 'no-store', credentials: 'same-origin',
 		signal: init.signal ?? AbortSignal.timeout(30000),
-		headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }
+		headers: { 'Content-Type': 'application/json', ...speedAuthHeaders(token) }
 	});
 	await checkResponse(response, token);
 	return response.json();
@@ -44,7 +45,7 @@ export function startTask(objective: string, options: TaskOptions, token: string
 export async function downloadArtifact(taskId: string, artifact: Artifact, token: string) {
 	// Construct the route from IDs; never follow URLs or paths stored in a message.
 	const response = await fetch(`/api/v1/${taskPath(taskId)}/artifacts/${routeId(artifact.id)}`, {
-		headers: { Authorization: `Bearer ${token}` }, cache: 'no-store'
+		headers: speedAuthHeaders(token), cache: 'no-store'
 	});
 	await checkResponse(response, token);
 	const url = URL.createObjectURL(await response.blob());

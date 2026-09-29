@@ -11,6 +11,8 @@ from app.security.models import User
 
 @pytest.fixture(autouse=True)
 def workspace(tmp_path, monkeypatch):
+    from app.core.config import settings
+    monkeypatch.setattr(settings, "speed_demo_auth", False)
     monkeypatch.setattr(filesystem_scope, "workspace", tmp_path)
     (tmp_path / "fixtures").mkdir()
     (tmp_path / "fixtures" / "inspection-report.txt").write_text(

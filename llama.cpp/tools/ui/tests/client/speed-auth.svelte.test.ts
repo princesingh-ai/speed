@@ -15,18 +15,22 @@ import { authStore, AuthStore } from '../../src/lib/stores/auth.svelte';
 import { speedSession } from '../../src/lib/speed/session.svelte';
 import { request } from '../../src/lib/speed/api';
 import { SPEED_AUTH_TOKEN_LOCALSTORAGE_KEY } from '../../src/lib/constants';
+import { AuthService } from '../../src/lib/services/auth.service';
 
 const user = { id: 'user-admin', username: 'admin', roles: ['admin'] };
 const json = (value: unknown, status = 200) => new Response(JSON.stringify(value), { status });
 let app: ReturnType<typeof mount> | undefined;
 let target: HTMLDivElement;
 
-beforeEach(() => {
+beforeEach(async () => {
     authStore.logout();
     authStore.error = null;
     navigation.goto.mockReset();
     vi.stubGlobal('fetch', vi.fn(async (url: RequestInfo | URL) =>
         json(String(url).endsWith('/login') ? { access_token: 'verified-jwt', token_type: 'bearer' } : user)));
+    vi.spyOn(AuthService, 'configuration').mockResolvedValue(false);
+    await authStore.initialize();
+    vi.mocked(fetch).mockClear();
     target = document.createElement('div');
     document.body.append(target);
 });
@@ -36,6 +40,7 @@ afterEach(async () => {
     target.remove();
     authStore.logout();
     vi.unstubAllGlobals();
+    vi.restoreAllMocks();
 });
 
 async function submit() {

@@ -10,6 +10,7 @@ from app.api.schemas.auth import (
 from app.security.dependencies import get_current_user
 from app.security.jwt import create_access_token
 from app.security.store import get_user, verify_password
+from app.core.config import settings
 
 
 logger = logging.getLogger("speed.auth")
@@ -17,6 +18,12 @@ router = APIRouter(
     prefix="/api/v1/auth",
     tags=["auth"],
 )
+
+
+@router.get("/config")
+async def auth_config():
+    from fastapi.responses import JSONResponse
+    return JSONResponse({"demo_auth": settings.speed_demo_auth}, headers={"Cache-Control": "no-store"})
 
 
 @router.post("/login", response_model=TokenResponse)

@@ -30,6 +30,7 @@ export const USER_OVERRIDES_LOCALSTORAGE_KEY = `${STORAGE_APP_NAME}.userOverride
 export const DISMISSED_RECOMMENDED_MCP_SERVERS_LOCALSTORAGE_KEY = `${STORAGE_APP_NAME}.dismissedRecommendedMcpServers`;
 
 export const SPEED_AUTH_TOKEN_LOCALSTORAGE_KEY = 'SPEED.auth.accessToken';
+export const SPEED_DEMO_AUTH_LOCALSTORAGE_KEY = 'SPEED.auth.demoUser';
 
 /** Key prefix for per-conversation resumable stream state, conversationId is appended */
 export const STREAM_RESUME_LOCALSTORAGE_KEY_PREFIX = `${STORAGE_APP_NAME}.streamResume.`;

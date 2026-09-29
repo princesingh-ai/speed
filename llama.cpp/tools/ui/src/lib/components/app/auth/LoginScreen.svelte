@@ -42,6 +42,7 @@
 				</div>
 
 				<p class="text-sm font-semibold tracking-widest">SPEED</p>
+				{#if authStore.demoMode}<span class="text-xs text-muted-foreground">Demo</span>{/if}
 			</div>
 
 			<Card.Title class="text-xl">Sign in to SPEED</Card.Title>

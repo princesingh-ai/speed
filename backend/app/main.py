@@ -24,6 +24,9 @@ async def lifespan(app):
         handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(name)s %(message)s"))
         logger.addHandler(handler)
     logger.setLevel(logging.INFO)
+    from app.core.config import settings
+    if settings.speed_demo_auth:
+        logger.warning("SPEED demo authentication enabled; demo principal=speed-demo-admin")
     from app.api.routes.models import model_router
     for model in model_router.models.values():
         logger.info("model configured id=%s kind=%s endpoint=%s artifact=%s availability=%s",

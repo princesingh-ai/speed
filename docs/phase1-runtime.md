@@ -3,50 +3,21 @@
 Source-only integration pass after 9fa1e36a181842ce6975478ce6dfbe854a625d9e.
 No project, test, browser, model, build, MCP or Docker execution occurred on the Mac.
 
-## Login and historical reference
+## Authentication modes
 
-The exact fork comparison was inspected in a temporary bare reference repository:
-`87eb82e38ba8317a3de7a0f86e8e48383bb89a1c` to
-`74777e2b146cf7260f4fe2bb4d2c173efce2a251`.
-Seven files changed: LoginScreen, auth store, storage constants, chat service,
-API headers, layout and Vite config. The later revision replaced API/JWT login
-with browser-only demo users (admin, engineering, finance), persisted a demo user
-instead of a token, removed chat auth headers/401 handling and the /auth proxy,
-and changed navigation to hash routes. It confirmed admin / admin-password.
-No commit was cherry-picked. Only that intended development account and simple
-login UX were recovered, using real SPEED authentication instead of local bypass.
+See [DEMO AUTH](phase1-demo-auth.md) for the current local hardcoded demo flow,
+runtime flag, fixed identity, startup command and browser checks.
 
-**Development-only credentials: username `admin`, password `admin-password`.**
-The account is intentionally in the existing temporary backend RBAC store,
-`backend/app/security/store.py`, alongside the prior development accounts.
-This is not production identity management. Replace the demo store/accounts
-before production deployment. Passwords are hashed with the existing pwdlib
-implementation and validated by `POST /api/v1/auth/login`; the backend issues
-the existing expiring JWT, signed with the deployment's SPEED_JWT_SECRET.
-No credentials or JWTs are logged.
+SPEED_DEMO_AUTH defaults to false, preserving the existing JWT login/me flow.
+When true, the browser checks admin / admin-password locally and stores only
+the username. It does not call login/me. Backend requests use the exact fixed
+demo marker. Ownership, RBAC and consent remain enforced. The mode is read from
+a public, uncached /api/v1/auth/config endpoint; credentials are never sent there.
 
-The inherited login hardcoded Snap text and used /auth/login and /auth/me.
-Those paths were unrelated to SPEED's /api/v1/auth endpoints, whose existing
-users did not include admin. The auth response shape also differed: SPEED uses
-`id, username, roles`, not `user_id, username, role`.
-
-Login now posts to /api/v1/auth/login, verifies /api/v1/auth/me, persists only
-the token under SPEED.auth.accessToken, and enters /#/. Refresh revalidates the
-token. Chat and agent mode share the same verified identity. Logout and HTTP 401
-clear both. Legacy browser demo identities are never trusted or migrated.
-Existing conversation/settings namespaces remain unchanged.
-
-Ordinary chat sends the SPEED bearer token and the backend enforces CHAT_USE.
-Agent creation, tickets, consent and downloads continue enforcing their existing
-RBAC/ownership rules. The /phase1 debug page remains available with its own
-standalone sign-in form against the same backend; it is not a second product.
-The working /login -> /#/login NGINX redirect is unchanged.
-
-Login uses SPEED text, a neutral existing Shield icon, existing card/input/button
-components, focus/disabled states, inline errors and a quiet submitting indicator.
-The default app title/PWA name and description are SPEED. Existing theme settings
-remain supported. No new logo, font, framework or generated PWA asset was added.
-Remove any deployment VITE_PUBLIC_APP_NAME override that still names the old product.
+The historical 87eb82e38ba8317a3de7a0f86e8e48383bb89a1c to
+74777e2b146cf7260f4fe2bb4d2c173efce2a251 comparison confirmed those demo credentials
+and the local-login concept. No Snap branding or unrelated historical code was
+restored. SPEED branding and the working /login -> /#/login redirect remain.
 
 ## Actual model architecture
 
@@ -85,7 +56,7 @@ failure remains failed until backend restart, avoiding repeated expensive loads.
 Missing artifacts can be provisioned then retried. Successful Laya use reports
 mode laya. A present directory alone never means healthy.
 
-GET /api/v1/models/health requires a SPEED JWT. It reports identifier, purpose,
+GET /api/v1/models/health requires a JWT or the fixed marker in enabled demo mode. It reports identifier, purpose,
 runtime kind, endpoint, artifact existence and availability. Laya distinguishes
 missing_artifact, not_loaded, loading, healthy, failed. Gemma probes /health and
 /v1/models with bounded timeouts, rejecting unavailable/mismatched models.
@@ -163,7 +134,7 @@ the existing llama.cpp/build CMake cache, and the repository NGINX prefix.
    `./node_modules/.bin/playwright install --with-deps chromium` in that directory.
    Offline deployments need an approved matching browser/dependency cache.
 5. Client tests:
-   `npm --prefix llama.cpp/tools/ui run test:client -- --run tests/client/speed-auth.svelte.test.ts tests/client/speed-activity.svelte.test.ts tests/client/speed-stabilization.svelte.test.ts`
+   `npm --prefix llama.cpp/tools/ui run test:client -- --run tests/client/speed-demo-auth.svelte.test.ts tests/client/speed-auth.svelte.test.ts tests/client/speed-activity.svelte.test.ts tests/client/speed-stabilization.svelte.test.ts`
 6. UI build:
    `npm --prefix llama.cpp/tools/ui run build`
 7. Rebuild the existing configured llama-server, retaining cached GPU/toolchain options:
@@ -191,7 +162,7 @@ the existing llama.cpp/build CMake cache, and the repository NGINX prefix.
    if the existing binary lives elsewhere. Do not run a duplicate process on 8080.
 9. In a backend terminal, export the same model overrides and existing
    SPEED_JWT_SECRET without printing it. Restart the existing process:
-   `PYTHONPATH=backend uv run uvicorn app.main:app --host 127.0.0.1 --port 8000 --workers 1`
+   `SPEED_DEMO_AUTH=true CUDA_VISIBLE_DEVICES=1 PYTHONPATH=backend uv run uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload`
    One worker is required for the in-memory task registry. Laya loads on first chat.
 10. In the gateway terminal:
 
@@ -211,32 +182,23 @@ the existing llama.cpp/build CMake cache, and the repository NGINX prefix.
     workflow, observe parallel dependency lanes and final result, download DOCX,
     and reopen the conversation. Verify MCP approval/search and denial separately;
     exercise Docker only if explicitly configured on this Linux server.
-13. Verify authenticated model health from a separate bash terminal:
+13. Verify model health using the fixed marker in demo mode:
 
     ```sh
-    set +x
-    SPEED_TOKEN=$(curl --fail --silent --show-error http://127.0.0.1:9100/api/v1/auth/login \
-      -H 'Content-Type: application/json' --data-binary @- <<'JSON' | jq -er '.access_token'
-    {"username":"admin","password":"admin-password"}
-    JSON
-    )
-    printf 'Authorization: Bearer %s\n' "$SPEED_TOKEN" |
-      curl --fail --silent --show-error -H @- http://127.0.0.1:9100/api/v1/models/health
-    unset SPEED_TOKEN
+    curl --fail --silent --show-error -H 'X-Speed-Demo-User: speed-demo-admin' \
+      http://127.0.0.1:9100/api/v1/models/health
     ```
 
-    Do not use curl -v or print the token. Expect Gemma healthy after loading.
-    Laya is healthy only after successful first-chat loading; otherwise the
-    diagnostic must truthfully report its actual state. jq is an operator
-    convenience, not a project dependency.
+    Expect Gemma healthy after loading. Laya is healthy only after successful
+    first-chat loading; otherwise the diagnostic reports its actual state.
+    In real-auth mode use the existing JWT flow instead.
 
 ## Remaining operational limits
 
 No local execution verification is claimed. Model artifacts/GPU capacity and
-server processes are outside this source-only inspection. Demo accounts and
-localStorage bearer tokens are development choices, not production SSO/session
-hardening. Direct llama-server endpoints remain on loopback with their existing
-API-key behavior; only SPEED endpoints use the SPEED JWT. Existing upstream
+server processes are outside this source-only inspection. Hardcoded browser demo auth and its forgeable marker are not production security.
+Real-auth mode retains the existing localStorage JWT session. Direct llama-server endpoints remain on loopback with their existing
+API-key behavior; SPEED endpoints accept JWTs or the explicitly enabled fixed demo marker. Existing upstream
 llama stream/lookup proxy exceptions are unchanged. Task/replay storage remains
 in-memory. No Playwright binaries, model files, generated UI or dependency
 installation output is part of this commit.

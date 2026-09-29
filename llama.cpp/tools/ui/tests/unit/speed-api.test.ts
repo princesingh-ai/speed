@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { downloadArtifact, request, startTask, watchTask } from '../../src/lib/speed/api';
 import { event, snapshot } from './speed-fixtures';
 
-const auth = vi.hoisted(() => ({ token: 'jwt', handleUnauthorized: vi.fn() }));
+const auth = vi.hoisted(() => ({ credential: 'jwt', handleUnauthorized: vi.fn() }));
 vi.mock('$lib/stores/auth.svelte', () => ({ authStore: auth }));
 
 class Socket {

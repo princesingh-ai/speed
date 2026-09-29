@@ -2,6 +2,7 @@ import { redactValue } from './redact';
 import { CORS_PROXY, HEADERS } from '$lib/constants';
 import { MimeTypeApplication } from '$lib/enums';
 import { authStore } from '$lib/stores/auth.svelte';
+import { speedAuthHeaders } from '$lib/speed/auth';
 import { settingsStore } from '$lib/stores/settings/index.svelte';
 
 /**
@@ -26,9 +27,7 @@ export function getJsonHeaders(): Record<string, string> {
 }
 
 export function getSpeedAuthHeaders(): Record<string, string> {
-	const token = authStore.token?.trim();
-
-	return token ? { [HEADERS.AUTHORIZATION]: `${HEADERS.BEARER}${token}` } : {};
+	return { ...(authStore.demoMode ? getAuthHeaders() : {}), ...speedAuthHeaders(authStore.credential) };
 }
 
 export function getSpeedJsonHeaders(): Record<string, string> {

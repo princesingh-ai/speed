@@ -8,6 +8,7 @@ class Settings(BaseSettings):
     llama_port: int = 8080
 
     speed_jwt_secret: str
+    speed_demo_auth: bool = False
     speed_workspace: Path = Path(__file__).resolve().parents[3]
     speed_sandbox_mode: Literal["disabled", "mock", "docker"] = "disabled"
     speed_sandbox_image: str = "python:3.13-slim"

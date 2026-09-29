@@ -4,6 +4,16 @@ import { MimeTypeApplication } from '$lib/enums';
 import type { SpeedAuthLoginResponse, SpeedAuthUser } from '$lib/types';
 
 export class AuthService {
+	static async configuration(): Promise<boolean> {
+		const response = await fetch(`${base}/api/v1/auth/config`, {
+			cache: 'no-store', signal: AbortSignal.timeout(15000)
+		});
+		if (!response.ok) throw new Error('Unable to load sign-in mode. Reload to retry.');
+		const config = await response.json();
+		if (typeof config.demo_auth !== 'boolean') throw new Error('Invalid sign-in configuration.');
+		return config.demo_auth;
+	}
+
 	static async login(username: string, password: string): Promise<SpeedAuthLoginResponse> {
 		const response = await fetch(`${base}${API_AUTH.LOGIN}`, {
 			cache: 'no-store',
