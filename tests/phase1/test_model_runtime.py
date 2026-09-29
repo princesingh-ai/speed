@@ -54,11 +54,13 @@ def test_laya_missing_uses_disclosed_fallback(tmp_path, monkeypatch, caplog):
     router = configured(tmp_path, monkeypatch)
     service = RoutingService()
     service.model_router = router
+    service.preload()
     analysis = service.analyze("Private input never logged")
     assert analysis.mode == "deterministic_fallback"
     assert analysis.task_type.value == "general"
     assert "fallback=deterministic_general" in caplog.text
     assert "Private input" not in caplog.text
+    assert asyncio.run(router.health(router.get("laya")))["availability"] == "missing_artifact"
 
 
 def test_endpoint_credentials_and_placeholder_port_rejected(tmp_path, monkeypatch):
@@ -95,7 +97,49 @@ def test_laya_load_failure_is_reported_without_repeated_loading(tmp_path, monkey
     monkeypatch.setitem(sys.modules, "laya", SimpleNamespace(load=load))
     service = RoutingService()
     service.model_router = router
+    with pytest.raises(RuntimeError, match="synthetic load failure"):
+        service.preload()
     assert service.analyze("one").mode == "deterministic_fallback"
     assert service.analyze("two").mode == "deterministic_fallback"
     assert load.call_count == 1
     assert asyncio.run(router.health(router.get("laya")))["availability"] == "failed"
+
+
+def test_lifespan_preloads_laya_before_serving_and_requests_reuse_it(tmp_path, monkeypatch):
+    from types import SimpleNamespace
+    from unittest.mock import Mock
+    from fastapi.testclient import TestClient
+    from app.api.routes import chat
+    from app.main import create_app
+    router = configured(tmp_path, monkeypatch)
+    Path(router.get("laya").model).mkdir()
+    predict = Mock(return_value={"answers": {"task": {"choice": "reasoning", "confidence": 0.9}}})
+    model = SimpleNamespace(predict=predict)
+    load = Mock(return_value=model)
+    monkeypatch.setitem(sys.modules, "laya", SimpleNamespace(load=load))
+    monkeypatch.setattr(TaskAnalyzer, "status", "not_loaded")
+    service = RoutingService()
+    service.model_router = router
+    monkeypatch.setattr(chat, "routing_service", service)
+    app = create_app()
+    load.assert_not_called()
+    with TestClient(app):
+        load.assert_called_once_with(router.get("laya").model, device=router.get("laya").device)
+        assert service.task_analyzer.model is model
+        assert TaskAnalyzer.status == "healthy"
+        assert service.analyze("first").mode == "laya"
+        assert service.analyze("second").mode == "laya"
+        assert load.call_count == 1 and predict.call_count == 2
+
+
+def test_requests_never_initialize_laya_without_preload(tmp_path, monkeypatch):
+    from types import SimpleNamespace
+    from unittest.mock import Mock
+    router = configured(tmp_path, monkeypatch)
+    Path(router.get("laya").model).mkdir()
+    load = Mock(side_effect=AssertionError("Request attempted model initialization"))
+    monkeypatch.setitem(sys.modules, "laya", SimpleNamespace(load=load))
+    service = RoutingService()
+    service.model_router = router
+    assert service.analyze("first").mode == "deterministic_fallback"
+    load.assert_not_called()

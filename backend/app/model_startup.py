@@ -21,7 +21,7 @@ def main():
         status = "artifact present; runtime not verified" if present else "unavailable: model artifact not found"
         print(f"[SPEED] {model.name}: {status}")
         if model.kind == "in_process":
-            print(f"[SPEED] {model.name}: loaded lazily inside backend, device={model.device}, no port")
+            print(f"[SPEED] {model.name}: preloaded during backend startup, device={model.device}, no port")
     model = router.get(args.model)
     if model is None or model.kind != "llama_server":
         parser.error("Select a configured llama_server model")

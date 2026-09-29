@@ -44,16 +44,18 @@ Existing CUDA_VISIBLE_DEVICES controls each process; no GPU index is invented.
 Paths in config must identify actual operator-provisioned artifacts.
 
 Gemma is the only configured generative model. It serves all three chat task
-categories; Laya is never exposed as a selectable chat model. Laya loads lazily
-on the first ordinary chat analysis, in a serialized worker thread in the backend.
+categories; Laya is never exposed as a selectable chat model. Backend startup
+awaits in-process Laya preload before serving requests. RoutingService retains
+the ready TaskAnalyzer; requests only call predict and never initialize models.
 Starting llama-server cannot start Laya. Agent planning directly selects Gemma
 and does not invoke the chat classifier. No embedding or extra generative model
 is actually configured.
 
 Missing Laya gives an explicit deterministic_general fallback log and
-X-SPEED-Task-Analysis: deterministic_fallback on chat responses. Load/prediction
-failure remains failed until backend restart, avoiding repeated expensive loads.
-Missing artifacts can be provisioned then retried. Successful Laya use reports
+X-SPEED-Task-Analysis: deterministic_fallback on chat responses. Missing artifacts
+are logged at startup; the backend explicitly degrades without claiming Laya is
+healthy. Other load failures abort startup. Prediction failures require restart.
+Provision missing artifacts and restart the backend. Successful Laya use reports
 mode laya. A present directory alone never means healthy.
 
 GET /api/v1/models/health requires a JWT or the fixed marker in enabled demo mode. It reports identifier, purpose,
@@ -163,7 +165,7 @@ the existing llama.cpp/build CMake cache, and the repository NGINX prefix.
 9. In a backend terminal, export the same model overrides and existing
    SPEED_JWT_SECRET without printing it. Restart the existing process:
    `SPEED_DEMO_AUTH=true CUDA_VISIBLE_DEVICES=1 PYTHONPATH=backend uv run uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload`
-   One worker is required for the in-memory task registry. Laya loads on first chat.
+   One worker is required for the in-memory task registry. Laya preloads before readiness.
 10. In the gateway terminal:
 
     ```sh
@@ -190,7 +192,7 @@ the existing llama.cpp/build CMake cache, and the repository NGINX prefix.
     ```
 
     Expect Gemma healthy after loading. Laya is healthy only after successful
-    first-chat loading; otherwise the diagnostic reports its actual state.
+    startup loading; otherwise the diagnostic reports its actual state.
     In real-auth mode use the existing JWT flow instead.
 
 ## Remaining operational limits

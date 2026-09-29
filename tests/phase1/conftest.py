@@ -13,6 +13,12 @@ from app.security.models import User
 def workspace(tmp_path, monkeypatch):
     from app.core.config import settings
     monkeypatch.setattr(settings, "speed_demo_auth", False)
+    # API tests must not load an operator's real GPU model during app startup.
+    from app.api.routes.chat import routing_service
+    monkeypatch.setattr(routing_service, "task_analyzer", None)
+    laya = routing_service.model_router.get("laya")
+    if laya is not None:
+        monkeypatch.setattr(laya, "model", str(tmp_path / "missing-laya"))
     monkeypatch.setattr(filesystem_scope, "workspace", tmp_path)
     (tmp_path / "fixtures").mkdir()
     (tmp_path / "fixtures" / "inspection-report.txt").write_text(

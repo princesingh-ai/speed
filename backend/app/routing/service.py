@@ -14,15 +14,28 @@ class RoutingService:
         self.model_router = ModelRouter()
         self.lock = threading.Lock()
 
+    def preload(self):
+        from app.task.analyzer import TaskAnalyzer
+        with self.lock:
+            if self.task_analyzer is not None:
+                return
+            config = self.model_router.get("laya")
+            if config is None:
+                TaskAnalyzer.status = "not_configured"
+                logger.warning("Laya preload unavailable: model not configured")
+                return
+            try:
+                self.task_analyzer = TaskAnalyzer(config)
+            except FileNotFoundError:
+                logger.warning("Laya preload unavailable: model artifact missing; availability=%s",
+                               TaskAnalyzer.status)
+
     def analyze(self, message):
         from app.task.analyzer import TaskAnalyzer
         with self.lock:
             try:
                 if self.task_analyzer is None:
-                    config = self.model_router.get("laya")
-                    if config is None or TaskAnalyzer.status == "failed":
-                        raise RuntimeError("Laya unavailable")
-                    self.task_analyzer = TaskAnalyzer(config)
+                    raise RuntimeError("Laya unavailable at startup")
                 return self.task_analyzer.analyze(message)
             except Exception:
                 if self.task_analyzer is not None:

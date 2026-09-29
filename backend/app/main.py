@@ -3,6 +3,7 @@ from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
 from pathlib import Path
 import logging
+import asyncio
 from app.api.routes.agent import router as agent_router
 from app.orchestration.service import AgentService
 
@@ -35,6 +36,8 @@ async def lifespan(app):
                     ("missing_artifact" if not Path(model.model).exists() else "not_loaded")
                     if model.kind == "in_process" else "not_probed")
     try:
+        from app.api.routes.chat import routing_service
+        await asyncio.to_thread(routing_service.preload)
         yield
     finally:
         await app.state.agent.close()
