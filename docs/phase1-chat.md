@@ -202,3 +202,34 @@ Playwright Chromium on the Linux validation machine.
   last topological textual result. A richer result schema is outside this slice.
 - Browser rendering, accessibility, service integration, builds and all tests
   remain unverified by execution. No generated assets were changed locally.
+
+## Compact activity and result review
+
+Agent activity, final prose, artifacts and result review share the existing chat
+message width. Running and failed traces are expanded; completed traces collapse
+unless manually expanded. Rows use real TaskGraph dependency lanes in stable plan
+order, live step events, elapsed running time and restrained motion (disabled for
+reduced-motion preferences). There are no invented branches or simulated delays.
+Fast steps may complete between browser frames; inference is shown at action level,
+not as a token stream.
+
+Agent settings show workflow and workspace input. Enabling the agent opens them;
+Settings collapses them to the workflow summary. No execution simulation switch is
+exposed. Public task requests reject `demo_mode=true`; constructor injection keeps
+simulation available only to tests. Authentication demo mode remains independent.
+Template planning fallback describes a real document plan; model analysis errors
+fail rather than producing canned content. Coding planning errors fail explicitly.
+
+Completed results have a separate review state: `pending`, `approved`,
+`changes_requested`, or `rejected`. The owner submits one decision with an optional
+note (up to 2,000 characters) to `POST /api/v1/agent/tasks/{id}/review`. The existing
+JWT/demo principal and agent permission checks apply. `review.required` and
+`review.submitted` events keep clients consistent; notes stay in the protected
+snapshot, not operational events. Decisions do not delete artifacts or trigger an
+automatic revision. Downloads remain available.
+
+Tool consent authorizes an operation before it runs. Result review records the
+human decision after completion and never grants tool permission. Review snapshots
+are stored with the conversation in IndexedDB and restored when reopened. Backend
+tasks remain in memory as before: restarting it loses server task/review records;
+the browser retains the last saved review but cannot submit a new one to a lost task.

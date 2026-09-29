@@ -10,7 +10,7 @@ class Settings(BaseSettings):
     speed_jwt_secret: str
     speed_demo_auth: bool = False
     speed_workspace: Path = Path(__file__).resolve().parents[3]
-    speed_sandbox_mode: Literal["disabled", "mock", "docker"] = "disabled"
+    speed_sandbox_mode: Literal["disabled", "docker"] = "disabled"
     speed_sandbox_image: str = "python:3.13-slim"
     speed_step_concurrency: int = Field(default=3, ge=1, le=8)
     speed_model_timeout: float = Field(default=30, gt=0, le=120)

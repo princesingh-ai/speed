@@ -38,7 +38,7 @@ export const taskPath = (id: string) => `agent/tasks/${routeId(id)}`;
 export function startTask(objective: string, options: TaskOptions, token: string) {
 	// Never automatically retry a POST: a lost response may already have created a task.
 	return request<{ task_id: string }>('agent/tasks', token, {
-		method: 'POST', body: JSON.stringify({ objective, ...options }), signal: AbortSignal.timeout(30000)
+		method: 'POST', body: JSON.stringify({ objective, flow: options.flow, input_path: options.input_path }), signal: AbortSignal.timeout(30000)
 	});
 }
 
@@ -85,7 +85,7 @@ export function watchTask(taskId: string, token: string, observer: Observer): ()
 		if (snapshot.last_sequence < snapshotSequence) return;
 		snapshotSequence = snapshot.last_sequence;
 		observer.snapshot(snapshot);
-		if (terminal(snapshot.status) && snapshot.last_sequence <= sequence) {
+		if (terminal(snapshot.status) && snapshot.review?.status !== 'pending' && snapshot.last_sequence <= sequence) {
 			observer.connection('Finished');
 			stop();
 		}
@@ -160,7 +160,7 @@ export function watchTask(taskId: string, token: string, observer: Observer): ()
 						if (event.task_id !== taskId) return;
 						if (event.sequence > sequence + 1) { ws.close(); return; }
 						receiveEvents([event]);
-						if (event.event_type.startsWith('plan.') || event.event_type.startsWith('task.') || event.event_type === 'artifact.created') {
+						if (event.event_type.startsWith('plan.') || event.event_type.startsWith('task.') || event.event_type.startsWith('review.') || event.event_type === 'artifact.created') {
 							void refresh().catch(fail);
 						}
 					}

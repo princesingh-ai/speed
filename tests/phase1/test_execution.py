@@ -7,6 +7,8 @@ from docx import Document
 from app.orchestration.events import EventBus, Trace, current_trace
 from app.orchestration.executor import Executor
 from app.orchestration.models import ExecutionPlan, PlanStep, StartRequest
+from app.orchestration.planner import Planner
+from app.orchestration.runtimes import RuntimeRouter
 from app.orchestration.service import AgentService
 from app.security.gateway import security_gateway
 from app.security.models import Permission
@@ -145,8 +147,8 @@ def test_executor_parallel_merge_failure_and_bound(user, fail):
 
 def test_deterministic_document_end_to_end(user, workspace):
     async def scenario():
-        service = AgentService()
-        record = service.create(user, StartRequest(objective="Review the inspection and prepare a note", demo_mode=True))
+        service = AgentService(planner=Planner(test_mode=True), runtimes=RuntimeRouter(test_mode=True))
+        record = service.create(user, StartRequest(objective="Review the inspection and prepare a note"))
         await asyncio.gather(*service.jobs)
         assert record.task.status.value == "completed"
         assert record.has_mock
@@ -171,8 +173,8 @@ def test_deterministic_document_end_to_end(user, workspace):
 
 def test_task_failure_blocks_artifact(user):
     async def scenario():
-        service = AgentService()
-        record = service.create(user, StartRequest(objective="Missing report", input_path="missing.txt", demo_mode=True))
+        service = AgentService(planner=Planner(test_mode=True), runtimes=RuntimeRouter(test_mode=True))
+        record = service.create(user, StartRequest(objective="Missing report", input_path="missing.txt"))
         await asyncio.gather(*service.jobs)
         assert record.task.status.value == "failed"
         assert not record.artifacts

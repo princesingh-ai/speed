@@ -47,7 +47,10 @@ it('restores pointer interaction under the composer overlay and exposes controls
 	checkbox.click();
 	await tick();
 	expect(speedSession.enabled).toBe(true);
-	expect(target.querySelector('details')!.open).toBe(true);
+	expect(target.querySelector('button[aria-expanded]')!.getAttribute('aria-expanded')).toBe('true');
+	expect(target.querySelectorAll('input[type="checkbox"]')).toHaveLength(1);
+	expect(target.textContent).not.toMatch(/mock|demonstration|signed in as/i);
+	expect(speedSession.options).not.toHaveProperty('demo_mode');
 	const select = target.querySelector<HTMLSelectElement>('select')!;
 	expect(select.value).toBe('document');
 	expect(select.getClientRects().length).toBeGreaterThan(0);
@@ -55,6 +58,13 @@ it('restores pointer interaction under the composer overlay and exposes controls
 	select.dispatchEvent(new Event('change', { bubbles: true }));
 	await tick();
 	expect(speedSession.options.flow).toBe('mcp');
+	target.querySelector<HTMLButtonElement>('button[aria-expanded]')!.click();
+	await tick();
+	expect(target.querySelector('select')).toBeNull();
+	expect(target.textContent).toContain('Document + MCP');
+	target.querySelector<HTMLButtonElement>('button[aria-expanded]')!.click();
+	await tick();
+	expect(target.querySelector('select')).not.toBeNull();
 	checkbox.click();
 	await tick();
 	expect(speedSession.enabled).toBe(false);

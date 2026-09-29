@@ -87,12 +87,13 @@ def fallback_plan(task_id, request):
 
 
 class Planner:
-    def __init__(self, complete=local_completion):
+    def __init__(self, complete=local_completion, *, test_mode=False):
         self.complete = complete
+        self.test_mode = test_mode
 
     async def plan(self, task_id, request, trace):
         trace.emit("plan.started", "Planner started", "running")
-        if not request.demo_mode:
+        if not self.test_mode:
             trace.emit("model.started", "Local planner model", "running")
             try:
                 example = fallback_plan(task_id, request).model_dump(mode="json")
@@ -116,9 +117,11 @@ class Planner:
                 return plan
             except Exception:
                 trace.emit("model.failed", "Local planner unavailable or invalid", "failed")
+                if request.flow == "coding":
+                    raise
         plan = fallback_plan(task_id, request)
-        trace.emit("plan.fallback", "Deterministic example plan", is_mock=True,
+        trace.emit("plan.fallback", "Template planning fallback", is_mock=self.test_mode,
                    summary="Template workflow; not AI-generated.",
                    metadata={"planner_mode": plan.planner_mode})
-        trace.emit("plan.created", f"Planner created {len(plan.steps)} steps", is_mock=True)
+        trace.emit("plan.created", f"Planner created {len(plan.steps)} steps", is_mock=self.test_mode)
         return plan

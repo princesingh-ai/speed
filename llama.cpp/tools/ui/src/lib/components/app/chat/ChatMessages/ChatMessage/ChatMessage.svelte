@@ -415,9 +415,9 @@
 	{:else if message.role === MessageRole.USER}
 		<ChatMessageUser class={className} {isLastUserMessage} {message} {nextAssistantMessage} />
 	{:else if message.speedTask}
-		<SpeedAgentActivity {message}>
+		<SpeedAgentActivity {message} class={className}>
 			{#if message.content}
-				<ChatMessageAssistant bind:textareaElement class={className} {isLastAssistantMessage} {message} {toolMessages} />
+				<ChatMessageAssistant bind:textareaElement {isLastAssistantMessage} {message} {toolMessages} />
 			{/if}
 		</SpeedAgentActivity>
 	{:else}

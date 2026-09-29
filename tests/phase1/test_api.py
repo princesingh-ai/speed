@@ -90,7 +90,10 @@ def test_auth_required_and_dashboard_static():
         assert client.get("/phase1/app.js").status_code == 200
 
 
-def test_development_login_supplies_real_agent_session(caplog):
+def test_development_login_supplies_real_agent_session(caplog, monkeypatch):
+    from unittest.mock import AsyncMock
+    from app.orchestration.service import AgentService
+    monkeypatch.setattr(AgentService, "run", AsyncMock())
     with TestClient(create_app()) as client:
         assert client.post("/api/v1/auth/login", json={"username": "admin", "password": "wrong"}).status_code == 401
         response = client.post("/api/v1/auth/login", json={"username": "admin", "password": "admin-password"})
@@ -101,7 +104,7 @@ def test_development_login_supplies_real_agent_session(caplog):
         user = client.get("/api/v1/auth/me", headers=headers).json()
         assert user == {"id": "user-admin", "username": "admin", "roles": ["admin"]}
         started = client.post("/api/v1/agent/tasks", headers=headers,
-                              json={"objective": "Review", "demo_mode": True})
+                              json={"objective": "Review"})
         assert started.status_code == 202
         path = "/api/v1/agent/tasks/" + started.json()["task_id"]
         assert client.get(path, headers=headers).status_code == 200
@@ -153,8 +156,10 @@ def test_gateway_configuration_preserves_inference():
         assert "proxy_pass http://llama_backend;" in block
 
 
-def test_start_returns_task_handle_and_snapshot(client):
-    response = client.post("/api/v1/agent/tasks", json={"objective": "Review", "demo_mode": True})
+def test_start_returns_task_handle_and_snapshot(client, monkeypatch):
+    from unittest.mock import AsyncMock
+    monkeypatch.setattr(client.app.state.agent, "run", AsyncMock())
+    response = client.post("/api/v1/agent/tasks", json={"objective": "Review"})
     assert response.status_code == 202
     task_id = response.json()["task_id"]
     snapshot = client.get(f"/api/v1/agent/tasks/{task_id}")

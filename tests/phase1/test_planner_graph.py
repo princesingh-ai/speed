@@ -64,10 +64,10 @@ def test_malformed_planner_falls_back(response):
     result = asyncio.run(Planner(complete).plan("t", StartRequest(objective="Review any report"), Trace(bus, "t")))
     assert result.planner_mode == "deterministic_fallback"
     assert "model.failed" in [e.event_type for e in bus.replay("t")]
-    assert next(e for e in bus.replay("t") if e.event_type == "plan.fallback").is_mock
+    assert not any(e.is_mock for e in bus.replay("t"))
 
 
-def test_real_structured_planner_and_explicit_demo():
+def test_real_structured_planner_and_test_only_fixture():
     request = StartRequest(objective="Review")
     valid = fallback_plan("t", request)
     valid.planner_mode = "local_model"
@@ -76,8 +76,7 @@ def test_real_structured_planner_and_explicit_demo():
         calls.append(prompt)
         return valid.model_dump_json()
     assert asyncio.run(Planner(complete).plan("t", request, Trace(EventBus(), "t"))).planner_mode == "local_model"
-    request.demo_mode = True
-    assert asyncio.run(Planner(complete).plan("t", request, Trace(EventBus(), "t"))).planner_mode == "deterministic_fallback"
+    assert asyncio.run(Planner(complete, test_mode=True).plan("t", request, Trace(EventBus(), "t"))).planner_mode == "deterministic_fallback"
     assert len(calls) == 1
 
 

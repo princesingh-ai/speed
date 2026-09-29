@@ -37,6 +37,16 @@ export interface Snapshot {
 	summary: string;
 	final_response: string;
 	planner_mode: string | null;
+	review?: ResultReview | null;
+}
+
+export type ReviewDecision = 'approved' | 'changes_requested' | 'rejected';
+export interface ResultReview {
+	status: 'pending' | ReviewDecision;
+	comment: string;
+	reviewed_by: string | null;
+	reviewer_name: string | null;
+	reviewed_at: string | null;
 }
 
 export interface TaskLink {
@@ -50,7 +60,6 @@ export interface TaskLink {
 
 export interface TaskOptions {
 	flow: 'document' | 'mcp' | 'coding';
-	demo_mode: boolean;
 	input_path: string;
 }
 

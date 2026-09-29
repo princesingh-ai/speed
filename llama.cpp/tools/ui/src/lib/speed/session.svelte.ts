@@ -7,7 +7,7 @@ class SpeedSession {
 	token = $state('');
 	ownerId = $state('');
 	username = $state('');
-	options = $state<TaskOptions>({ flow: 'document', demo_mode: false, input_path: 'fixtures/inspection-report.txt' });
+	options = $state<TaskOptions>({ flow: 'document', input_path: 'fixtures/inspection-report.txt' });
 
 	setAuth(token: string, user: SpeedAuthUser) {
 		this.token = token;

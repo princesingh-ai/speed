@@ -32,7 +32,7 @@ $('login-form').addEventListener('submit', async event => {
 $('task-form').addEventListener('submit', async event => {
   event.preventDefault(); error(); $('start').disabled = true;
   try {
-    const result = await (await api('/api/v1/agent/tasks', jsonPost({objective: $('objective').value, flow: $('flow').value, input_path: $('input-path').value, demo_mode: $('demo').checked}))).json();
+    const result = await (await api('/api/v1/agent/tasks', jsonPost({objective: $('objective').value, flow: $('flow').value, input_path: $('input-path').value}))).json();
     await selectTask(result.task_id);
   } catch (e) { error(e.message); } finally { $('start').disabled = !token; }
 });
@@ -61,7 +61,7 @@ async function connect(epoch) {
         connection('Live', true); renderSnapshot(); scheduleRender();
       } else if (data.type === 'event') {
         accept(data.event); scheduleRender();
-        if (/^(step\.|task\.|artifact\.|plan\.)/.test(data.event.event_type)) refreshSnapshot(epoch);
+        if (/^(step\.|task\.|artifact\.|plan\.|review\.)/.test(data.event.event_type)) refreshSnapshot(epoch);
       }
     };
     ws.onclose = event => {
@@ -98,11 +98,10 @@ function renderSnapshot() {
   $('status').textContent = snapshot.status; $('status').className = `pill ${snapshot.status}`;
   $('planner').textContent = `Planner: ${snapshot.planner_mode === 'deterministic_fallback' ? 'Deterministic fallback' : snapshot.planner_mode === 'local_model' ? 'Local AI' : 'planning'}`;
   $('progress').textContent = `${snapshot.steps.filter(s => s.status === 'completed').length} / ${snapshot.steps.length} steps`;
-  $('mock-label').textContent = snapshot.has_mock ? 'MOCK / DEMO CONTENT' : '';
   $('result').textContent = snapshot.summary || (terminal.has(snapshot.status) ? `Task ${snapshot.status}.` : 'Receiving backend execution events.');
   $('artifacts').replaceChildren();
   for (const artifact of snapshot.artifacts) {
-    const button = document.createElement('button'); button.textContent = `↓ ${artifact.name}${artifact.is_mock ? ' · DEMO' : ''}`;
+    const button = document.createElement('button'); button.textContent = `↓ ${artifact.name}`;
     button.onclick = async () => {
       button.disabled = true;
       try {
@@ -115,6 +114,7 @@ function renderSnapshot() {
     $('artifacts').append(button);
   }
   if (!snapshot.artifacts.length) $('artifacts').textContent = 'No artifacts yet.';
+  renderReview();
   $('approvals').replaceChildren();
   for (const step of snapshot.steps.filter(s => s.status === 'waiting')) {
     const event = [...events].reverse().find(e => e.step_id === step.id && e.event_type === 'step.waiting');
@@ -168,7 +168,7 @@ function render() {
     const copy = document.createElement('div'); copy.className = 'event-copy';
     const title = document.createElement('div'); title.className = 'event-title'; title.textContent = event.title; title.title = event.title;
     const meta = document.createElement('div'); meta.className = 'event-meta';
-    meta.textContent = `#${event.sequence} · ${event.event_type}${event.duration_ms != null ? ` · ${event.duration_ms} ms` : ''}${event.is_mock ? ' · MOCK' : ''}${event.summary ? ` · ${event.summary}` : ''}`;
+    meta.textContent = `#${event.sequence} · ${event.event_type}${event.duration_ms != null ? ` · ${event.duration_ms} ms` : ''}${event.summary ? ` · ${event.summary}` : ''}`;
     copy.append(title, meta);
     const state = document.createElement('span'); state.className = `pill ${event.status}`; state.textContent = event.status;
     const detail = document.createElement('details'), summary = document.createElement('summary'), pre = document.createElement('pre');
@@ -178,4 +178,37 @@ function render() {
   if ($('follow').checked) $('history-viewport').scrollTop = $('history-viewport').scrollHeight;
 }
 $('filter').onchange = scheduleRender;
+
+function renderReview() {
+  const box = $('review'), review = snapshot.review;
+  box.hidden = !review;
+  if (!review) { box.replaceChildren(); return; }
+  // Preserve a note being typed while another event refreshes the snapshot.
+  if (box.dataset.task === taskId && box.dataset.status === review.status) return;
+  box.dataset.task = taskId; box.dataset.status = review.status; box.replaceChildren();
+  const labels = {pending: 'Review required', approved: 'Approved', changes_requested: 'Changes requested', rejected: 'Rejected'};
+  const heading = document.createElement('h3');
+  heading.textContent = labels[review.status] + (review.reviewer_name ? ` by ${review.reviewer_name}` : '');
+  box.append(heading);
+  if (review.status !== 'pending') {
+    const note = document.createElement('p'); note.textContent = review.comment; box.append(note); return;
+  }
+  const label = document.createElement('label'), note = document.createElement('textarea');
+  label.textContent = 'Review note (optional)'; note.maxLength = 2000; label.append(note); box.append(label);
+  for (const decision of ['approved', 'changes_requested', 'rejected']) {
+    const button = document.createElement('button');
+    button.textContent = {approved: 'Approve', changes_requested: 'Request changes', rejected: 'Reject'}[decision];
+    button.onclick = async () => {
+      const epoch = generation, id = taskId;
+      box.querySelectorAll('button').forEach(b => b.disabled = true);
+      try {
+        const result = await (await api(`/api/v1/agent/tasks/${id}/review`, jsonPost({decision, comment: note.value}))).json();
+        if (epoch === generation) { snapshot = result; renderSnapshot(); }
+      } catch (e) {
+        if (epoch === generation) { error(e.message); box.querySelectorAll('button').forEach(b => b.disabled = false); }
+      }
+    };
+    box.append(button);
+  }
+}
 $('reconnect').onclick = () => { generation++; clearTimeout(retry); if (socket) socket.close(); connect(generation); };

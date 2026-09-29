@@ -46,6 +46,8 @@ class Executor:
                     if len(step.dependencies) > 1:
                         trace.emit("branch.merged", "Dependency results joined", metadata={"source_lanes": parents})
                     inputs = resolve_inputs(step.inputs, results)
+                    # Give the stream a chance to publish started states before synchronous tools.
+                    await asyncio.sleep(0)
                     results[step.id] = await self.runtimes.execute(
                         step, user, record.task.id, inputs, trace, record.request.demo_mode)
                     if isinstance(results[step.id], dict) and results[step.id].get("is_mock"):

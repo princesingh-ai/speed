@@ -40,3 +40,12 @@ it('keeps the live task handle visible if browser persistence fails', async () =
 	await expect(saveTaskMessage(message, link)).rejects.toThrow('Quota exceeded');
 	expect(mocks.store.updateMessageAtIndex).toHaveBeenCalledWith(2, { speedTask: link });
 });
+
+it('persists result review with the task snapshot on its original conversation message', async () => {
+	const reviewed = { ...link, snapshot: snapshot([], { status: 'completed', last_sequence: 8,
+		review: { status: 'changes_requested', comment: 'Clarify the findings.', reviewed_by: 'owner',
+			reviewer_name: 'admin', reviewed_at: '2026-01-01T00:00:00Z' } }) };
+	await saveTaskMessage(message, reviewed);
+	expect(mocks.update).toHaveBeenCalledWith('assistant-a', { speedTask: reviewed });
+	expect(mocks.store.updateMessageAtIndex).toHaveBeenCalledWith(2, { speedTask: reviewed });
+});

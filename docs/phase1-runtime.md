@@ -65,8 +65,9 @@ missing_artifact, not_loaded, loading, healthy, failed. Gemma probes /health and
 The served ID is the GGUF basename, matching vendored llama-server behavior.
 The router checks health before selection; inference failure is still possible
 after a successful probe and is logged. No response is fabricated.
-Ordinary chat returns 503 if no model is available; Phase 1 retains its explicitly
-marked deterministic/mock fallback. The model list describes configuration,
+Ordinary chat returns 503 if no model is available. Phase 1 can use a disclosed
+template planning fallback for documents, but analysis failures stop execution
+instead of substituting canned content. The model list describes configuration,
 while the authenticated health endpoint reports observed availability.
 
 ## Startup and observability

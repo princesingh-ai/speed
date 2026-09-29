@@ -6,7 +6,7 @@ from time import monotonic
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, WebSocket, WebSocketDisconnect
 from fastapi.responses import FileResponse
 
-from app.orchestration.models import StartRequest
+from app.orchestration.models import ReviewRequest, StartRequest
 from app.security.dependencies import get_current_user, require_permission
 from app.security.models import Permission, User
 from app.tools.builtin.filesystem_scope import filesystem_scope
@@ -51,6 +51,17 @@ async def history(task_id: str, request: Request, after_sequence: int = Query(0,
     return {"events": [e.model_dump(mode="json") for e in events],
             "snapshot": service.snapshot(task_id),
             "history_truncated": bool(events and events[0].sequence > after_sequence + 1)}
+
+
+@router.post("/tasks/{task_id}/review")
+async def review(task_id: str, body: ReviewRequest, request: Request,
+                 user: User = Depends(require_permission(Permission.AGENT_EXECUTE))):
+    service = request.app.state.agent
+    owned(service, task_id, user)
+    try:
+        return service.review(task_id, user, body)
+    except ValueError as exc:
+        raise HTTPException(409, str(exc))
 
 
 @router.post("/tasks/{task_id}/ticket")

@@ -50,6 +50,7 @@ def test_demo_defaults_off_and_marker_cannot_bypass_jwt(monkeypatch):
 def test_demo_agent_and_health_without_login(client, monkeypatch):
     from app.api.routes import models, chat
     from app.task.models import TaskAnalysis
+    monkeypatch.setattr(client.app.state.agent, "run", AsyncMock())
     monkeypatch.setattr(models.model_router, "health", AsyncMock(return_value={"availability": "unavailable"}))
     monkeypatch.setattr(chat.routing_service, "route", AsyncMock(return_value=(TaskAnalysis(task_type="general"), object())))
     monkeypatch.setattr(chat.inference_service, "chat", AsyncMock(return_value={"choices": []}))
@@ -59,7 +60,7 @@ def test_demo_agent_and_health_without_login(client, monkeypatch):
     assert client.get("/api/v1/auth/me", headers=HEADERS).json() == {
         "id": DEMO_PRINCIPAL_ID, "username": "admin", "roles": ["admin"]}
     started = client.post("/api/v1/agent/tasks", headers=HEADERS,
-                          json={"objective": "Review", "demo_mode": True})
+                          json={"objective": "Review"})
     assert started.status_code == 202
     task_id = started.json()["task_id"]
     assert client.app.state.agent.records[task_id].task.user_id == DEMO_PRINCIPAL_ID

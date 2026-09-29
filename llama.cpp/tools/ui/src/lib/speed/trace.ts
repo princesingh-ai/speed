@@ -8,6 +8,7 @@ export interface ActivityRow {
 	dependencies: string[];
 	details: string[];
 	mock: boolean;
+	startedAt?: number;
 	duration?: number;
 	consentId?: string;
 	permission?: string;
@@ -55,7 +56,8 @@ export function activityRows(snapshot: Snapshot | undefined, events: ExecutionEv
 	if (planning.length) {
 		const last = planning[planning.length - 1];
 		rows.set('planning', { id: 'planning', title: 'Planning', status: steps.length ? 'completed' : last.status,
-			lane: 0, dependencies: [], details: planning.some(e => e.event_type === 'plan.fallback') ? ['Deterministic fallback'] : [],
+			lane: 0, dependencies: [], details: planning.some(e => e.event_type === 'plan.fallback') ? ['Template planning fallback'] : [],
+			startedAt: Date.parse(planning[0].timestamp),
 			mock: planning.some(e => e.is_mock) });
 	}
 	for (const event of events) {
@@ -68,6 +70,7 @@ export function activityRows(snapshot: Snapshot | undefined, events: ExecutionEv
 			rows.set(row.id, row);
 		}
 		if (event.event_type.startsWith('step.') && event.sequence > (snapshot?.last_sequence ?? 0)) row.status = event.status;
+		if (event.event_type === 'step.started') row.startedAt = Date.parse(event.timestamp);
 		row.mock ||= event.is_mock;
 		if (event.duration_ms !== null) row.duration = event.duration_ms;
 		const meta = event.metadata;
@@ -87,7 +90,7 @@ export function activityRows(snapshot: Snapshot | undefined, events: ExecutionEv
 		if (typeof meta.exit_code === 'number') details.push(`Exit ${meta.exit_code}`);
 		if (typeof meta.result_count === 'number') details.push(`${meta.result_count} results`);
 		if (typeof meta.error_code === 'string') details.push(meta.error_code.slice(0, 100));
-		if (event.event_type === 'model.fallback') details.push('Deterministic extract');
+		if (event.event_type === 'model.fallback' && !event.is_mock) details.push('Source extraction');
 		row.details = [...new Set([...row.details, ...details])].slice(-8);
 		if (event.event_type === 'step.waiting' && typeof meta.consent_id === 'string') {
 			row.consentId = meta.consent_id;
@@ -100,15 +103,18 @@ export function activityRows(snapshot: Snapshot | undefined, events: ExecutionEv
 		if (!rows.has(step.id)) rows.set(step.id, { id: step.id, title: step.title, status: step.status,
 			lane: lanes.get(step.id) ?? 0, dependencies: step.dependencies, details: [], mock: false });
 	}
-	return [...rows.values()];
+	// Keep the actual plan order stable as concurrent events arrive.
+	const order = new Map([...lanes.keys()].map((id, index) => [id, index]));
+	return [...rows.values()].sort((a, b) => a.id === 'planning' ? -1 : b.id === 'planning' ? 1
+		: (order.get(a.id) ?? steps.length) - (order.get(b.id) ?? steps.length));
 }
 
-export function graphEdges(rows: ActivityRow[], rowHeight = 76) {
+export function graphEdges(rows: ActivityRow[], rowHeight = 48) {
 	return rows.flatMap((row, index) => row.dependencies.flatMap(id => {
 		const source = rows.findIndex(r => r.id === id);
 		if (source < 0) return [];
 		const x1 = 10 + rows[source].lane * 16, y1 = source * rowHeight + 20;
 		const x2 = 10 + row.lane * 16, y2 = index * rowHeight + 20;
-		return [`M ${x1} ${y1} C ${x1} ${y1 + 32}, ${x2} ${y2 - 32}, ${x2} ${y2}`];
+		return [`M ${x1} ${y1} C ${x1} ${y1 + rowHeight / 2}, ${x2} ${y2 - rowHeight / 2}, ${x2} ${y2}`];
 	}));
 }

@@ -16,7 +16,9 @@ only create records. `SecurityGateway`, JWT authentication, RBAC, consent,
 - `Planner`: requests structured JSON from the configured reasoning model through
   existing inference. A 30-second default timeout, model absence, malformed JSON,
   invalid graph or unregistered tool triggers a disclosed deterministic fallback.
-  `demo_mode=true` skips model calls entirely. Phase 1 inference accepts loopback
+  Document fallback plans still run real analysis and tools; coding planning errors
+  fail rather than substituting an example program. Analysis errors fail the step.
+  `demo_mode=true` is rejected by the public API. Phase 1 inference accepts loopback
   endpoints only. Prompts and model responses are never included in trace events.
 - `ExecutionPlan` / `PlanStep`: Pydantic source of truth, at most 32 steps. Rejects
   duplicate IDs, missing/self/duplicate dependencies, cycles, unknown execution
@@ -45,7 +47,7 @@ only create records. `SecurityGateway`, JWT authentication, RBAC, consent,
 `/phase1/` is static HTML/CSS/JavaScript/SVG served by FastAPI; no frontend build,
 CDN, external fonts, visualization library or fake frontend workflow animation.
 The dark history view has stable colored lanes, action dots, dependency curves,
-fan-out and fan-in, current-action highlighting, state pills, mock labels, safe
+fan-out and fan-in, current-action highlighting, state pills, safe
 expandable metadata, category highlighting, follow/pause scrolling and downloads.
 Category highlighting dims other rows to preserve graph geometry.
 
@@ -57,6 +59,7 @@ Category highlighting dims other rows to preserve graph geometry.
 | `POST /api/v1/agent/tasks/{id}/ticket` | JWT-authenticated, 30-second single-use WS ticket |
 | `WS /api/v1/agent/tasks/{id}/events` | First-frame authentication and live replay |
 | `GET /api/v1/agent/tasks/{id}/artifacts/{artifact_id}` | Registered artifact download only |
+| `POST /api/v1/agent/tasks/{id}/review` | Owner records a result decision and optional comment |
 
 REST uses `Authorization: Bearer <JWT>`. The standalone debug UI signs in through the existing
 `POST /api/v1/auth/login` endpoint. Tokens remain in browser memory, not storage or
@@ -116,9 +119,9 @@ swapping symlinks between checks; this is a trusted local workspace demo.
 
 `SPEED_SANDBOX_MODE` is `disabled` by default:
 
-- `mock`: explicit simulated result, no process or code execution; all sandbox
-  events and dependent verification outputs are labelled MOCK. Verification says
-  that code was not run; it never claims assertions passed.
+- Simulation is available only through test constructor injection, never deployment
+  configuration or task requests. Existing `SPEED_SANDBOX_MODE=mock` configurations
+  must be changed to `disabled` or `docker` before restarting.
 - `docker`: Docker CLI adapter, ephemeral container, `--pull=never`, no network,
   non-root UID, read-only root, dropped capabilities, no-new-privileges, temporary
   tmpfs workdir, CPU/memory/PID limits, bounded timeout (max 30 seconds), bounded
@@ -136,8 +139,8 @@ interpreter. There is no user-supplied executable, server URL or Internet transp
 Client context exit closes the process; the whole call has a 20-second timeout.
 Tools are discovered and checked, error results fail the step. `calculator` supports
 add/multiply without eval. `search_internal_docs` searches two bundled fixture
-policies by keyword. This is an actual local protocol path, not RAG. It is not
-mocked by `demo_mode`; that flag only selects deterministic planning/analysis.
+policies by keyword. This is an actual local protocol path, not RAG. Authentication
+demo mode does not change model or tool execution.
 SDK reference: https://py.sdk.modelcontextprotocol.io/client/transports/
 
 `ArtifactRuntime` uses python-docx to write actual OOXML documents, supporting title,
@@ -188,24 +191,21 @@ execution, package installation, lock generation or Docker/MCP startup was perfo
 
 4. Open `http://127.0.0.1:8000/phase1/` (or the existing gateway at
    `http://127.0.0.1:9100/phase1/` after loading the reviewed NGINX configuration).
-   Sign in. Keep **Deterministic demo** checked. Choose **Document review** and start
+   Sign in. Choose **Document review** and start
    “Read the sample inspection report and prepare an approval note.”
    Watch read → parallel analysis/risk → draft → save → DOCX; download the document.
-   No GPU, model, Docker or MCP process is needed for this document path.
+   The configured local reasoning model must be available for analysis.
 
 5. Choose **Document + local MCP** to add real fixture search. Approve the specific
    MCP consent when shown. Denial produces a failed branch and blocked dependents.
 
-6. For the sandbox example, configure `SPEED_SANDBOX_MODE=mock` before startup for a
-   disclosed, no-Docker demonstration, or `SPEED_SANDBOX_MODE=docker` with a preloaded
-   image for actual execution. Choose **Python sandbox example**, then approve the
-   sandbox step. The deterministic fallback prepares a fixed compound-interest
-   program (1000, 5%, 3 years), runs it, and verifies successful program assertions.
-   It does not infer arbitrary calculation parameters from the objective.
+6. For sandbox execution, configure `SPEED_SANDBOX_MODE=docker` with a preloaded
+   image. Choose the coding workflow and approve the specific tool permission.
+   Invalid/unavailable planner output fails; no example program is substituted.
 
-7. For real planning, uncheck Deterministic demo and configure an available local
-   reasoning endpoint in `config/models/models.yaml`. The existing model paths are
-   machine-specific and must match your deployment. Failure falls back explicitly.
+7. Configure the available local reasoning endpoint in `config/models/models.yaml`.
+   Existing model paths must match the deployment. Document planning fallback is
+   labelled explicitly; model analysis never silently becomes a source extract.
 
 Equivalent task request, after obtaining a JWT through the existing login API:
 
@@ -214,7 +214,7 @@ POST /api/v1/agent/tasks
 Authorization: Bearer <JWT>
 Content-Type: application/json
 
-{"objective":"Prepare an inspection approval note","demo_mode":true,"flow":"document","input_path":"fixtures/inspection-report.txt"}
+{"objective":"Prepare an inspection approval note","flow":"document","input_path":"fixtures/inspection-report.txt"}
 ```
 
 ## Tests to run elsewhere

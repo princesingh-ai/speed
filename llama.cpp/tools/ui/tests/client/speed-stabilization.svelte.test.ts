@@ -16,7 +16,7 @@ vi.mock('$lib/services/chat.service', () => ({ ChatService: {} }));
 vi.mock('$lib/speed/api', () => ({ startTask: mocks.start }));
 vi.mock('$lib/speed/messages', () => ({ saveTaskMessage: mocks.save }));
 vi.mock('$lib/speed/session.svelte', () => ({ speedSession: {
-	enabled: true, token: 'token', ownerId: 'owner', options: { flow: 'document', demo_mode: true, input_path: 'report.txt' }
+	enabled: true, token: 'token', ownerId: 'owner', options: { flow: 'document', input_path: 'report.txt' }
 } }));
 vi.mock('$lib/stores/conversations/index.svelte', () => ({ conversationsStore: mocks.conversations }));
 vi.mock('$lib/stores/agentic/index.svelte', () => ({ agenticStore: { isRunning: () => false } }));

@@ -72,4 +72,21 @@ describe('execution activity', () => {
 		expect(belongsToMessage(link, { convId: 'b', parent: 'u' })).toBe(false);
 		expect(belongsToMessage(link, { convId: 'a', parent: 'v' })).toBe(false);
 	});
+
+	it('keeps dependency order stable when parallel events arrive in reverse order', () => {
+		const state = snapshot([{ id: 'root' }, { id: 'a', dependencies: ['root'] },
+			{ id: 'b', dependencies: ['root'] }, { id: 'join', dependencies: ['a', 'b'] }]);
+		const rows = activityRows(state, [event(1, { step_id: 'b' }), event(2, { step_id: 'a' })]);
+		expect(rows.map(r => r.id)).toEqual(['root', 'a', 'b', 'join']);
+		expect(graphEdges(rows)).toHaveLength(4);
+		expect(rows.find(r => r.id === 'b')?.status).toBe('running');
+	});
+
+	it('describes real fallback without simulation provenance', () => {
+		const rows = activityRows(snapshot([{ id: 'read' }]), [
+			event(1, { step_id: null, event_type: 'plan.fallback' })
+		]);
+		expect(rows[0].details).toEqual(['Template planning fallback']);
+		expect(rows[0].mock).toBe(false);
+	});
 });

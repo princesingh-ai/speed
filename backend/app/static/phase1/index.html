@@ -21,10 +21,9 @@
     <p id="identity" class="muted" hidden></p>
     <form id="task-form">
       <label>Objective<textarea id="objective" rows="4" maxlength="8000" required>Read the sample inspection report and prepare an approval note.</textarea></label>
-      <label>Workflow<select id="flow"><option value="document">Document review</option><option value="mcp">Document + local MCP</option><option value="coding">Python sandbox example</option></select></label>
+      <label>Workflow<select id="flow"><option value="document">Document review</option><option value="mcp">Document + local MCP</option><option value="coding">Coding sandbox</option></select></label>
       <label>Source file<input id="input-path" value="fixtures/inspection-report.txt" maxlength="500"></label>
-      <label class="check"><input id="demo" type="checkbox" checked> Deterministic demo</label>
-      <p class="hint">Demo uses disclosed template analysis. Python fallback uses fixed example values. MCP and sandbox require approval.</p>
+      <p class="hint">Uses local model analysis and workspace files. MCP and sandbox require permission.</p>
       <button id="start" type="submit" disabled>Start task <span aria-hidden="true">↗</span></button>
     </form>
     <p id="error" role="alert"></p>
@@ -32,8 +31,9 @@
   </aside>
   <section class="execution" aria-label="Execution activity">
     <div class="summary"><div><div class="eyebrow">CURRENT TASK</div><h2 id="task-title">Ready when you are</h2><p id="task-id" class="mono muted">No task selected</p></div><span id="status" class="pill">pending</span></div>
-    <div class="metrics"><span id="planner">Planner: —</span><span id="progress">0 / 0 steps</span><span id="mock-label"></span></div>
+    <div class="metrics"><span id="planner">Planner: —</span><span id="progress">0 / 0 steps</span></div>
     <div id="approvals" aria-live="polite"></div>
+    <section id="review" aria-label="Result review" hidden></section>
     <div class="toolbar"><label>Highlight <select id="filter"><option value="all">All actions</option><option value="file">Files</option><option value="tool">Tools</option><option value="sandbox">Sandbox</option><option value="mcp">MCP</option><option value="artifact">Artifacts</option></select></label><label class="check"><input type="checkbox" id="follow" checked> Follow latest</label><button id="reconnect" type="button" disabled>Reconnect</button></div>
     <p id="notice" class="hint" role="status"></p>
     <div id="history-viewport" tabindex="0" aria-label="Scrollable execution history">

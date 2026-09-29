@@ -94,6 +94,21 @@ class ExecutionEvent(BaseModel):
 class StartRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
     objective: str = Field(min_length=1, max_length=8000)
-    demo_mode: bool = False
+    # Accept old clients' false value, but never select simulation through the API.
+    demo_mode: Literal[False] = False
     flow: Literal["document", "mcp", "coding"] = "document"
     input_path: str = Field(default="fixtures/inspection-report.txt", max_length=500)
+
+
+class ReviewRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    decision: Literal["approved", "changes_requested", "rejected"]
+    comment: str = Field(default="", max_length=2000)
+
+
+class ResultReview(BaseModel):
+    status: Literal["pending", "approved", "changes_requested", "rejected"] = "pending"
+    comment: str = ""
+    reviewed_by: str | None = None
+    reviewer_name: str | None = None
+    reviewed_at: datetime | None = None

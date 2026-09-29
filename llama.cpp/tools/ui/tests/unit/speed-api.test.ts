@@ -121,12 +121,34 @@ describe('SPEED transport', () => {
 
 	it('posts the selected workflow exactly once and preserves authorization', async () => {
 		vi.mocked(fetch).mockRejectedValue(new TypeError('Network lost'));
-		await expect(startTask('Review', { flow: 'document', demo_mode: true, input_path: 'report.txt' }, 'jwt')).rejects.toThrow();
+		const options = { flow: 'document' as const, demo_mode: true, input_path: 'report.txt' };
+		await expect(startTask('Review', options, 'jwt')).rejects.toThrow();
 		expect(fetch).toHaveBeenCalledTimes(1);
 		expect(fetch).toHaveBeenCalledWith('/api/v1/agent/tasks', expect.objectContaining({
 			method: 'POST', headers: expect.objectContaining({ Authorization: 'Bearer jwt' }),
-			body: JSON.stringify({ objective: 'Review', flow: 'document', demo_mode: true, input_path: 'report.txt' })
+			body: JSON.stringify({ objective: 'Review', flow: 'document', input_path: 'report.txt' })
 		}));
+	});
+
+	it('delivers live steps immediately and follows review events after execution completes', async () => {
+		const callbacks = observer();
+		const stop = watchTask('task-a', 'jwt', callbacks);
+		await vi.advanceTimersByTimeAsync(0);
+		const ws = Socket.instances[0];
+		ws.frame({ type: 'snapshot', snapshot: snapshot([], { last_sequence: 0 }), events: [] });
+		ws.frame({ type: 'event', event: event(1) });
+		expect(callbacks.events.mock.lastCall?.[0]).toEqual([event(1)]);
+		expect(fetch).toHaveBeenCalledTimes(1);
+		const review = { status: 'pending' as const, comment: '', reviewed_by: null, reviewer_name: null, reviewed_at: null };
+		ws.frame({ type: 'snapshot', snapshot: snapshot([], { status: 'completed', last_sequence: 2, review }), events: [event(2)] });
+		expect(ws.close).not.toHaveBeenCalled();
+		vi.mocked(fetch).mockResolvedValue(response(snapshot([], { status: 'completed', last_sequence: 3,
+			review: { ...review, status: 'approved', reviewed_by: 'owner', reviewer_name: 'admin' } })));
+		ws.frame({ type: 'event', event: event(3, { event_type: 'review.submitted', step_id: null }) });
+		await vi.advanceTimersByTimeAsync(0);
+		expect(callbacks.snapshot.mock.lastCall?.[0].review.status).toBe('approved');
+		expect(ws.close).toHaveBeenCalled();
+		stop();
 	});
 
 	it('uses authenticated artifact IDs, never imported download URLs', async () => {
