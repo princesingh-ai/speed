@@ -25,16 +25,16 @@ export function getJsonHeaders(): Record<string, string> {
 	};
 }
 
-export function getSnapAuthHeaders(): Record<string, string> {
+export function getSpeedAuthHeaders(): Record<string, string> {
 	const token = authStore.token?.trim();
 
 	return token ? { [HEADERS.AUTHORIZATION]: `${HEADERS.BEARER}${token}` } : {};
 }
 
-export function getSnapJsonHeaders(): Record<string, string> {
+export function getSpeedJsonHeaders(): Record<string, string> {
 	return {
 		[HEADERS.CONTENT_TYPE]: MimeTypeApplication.JSON,
-		...getSnapAuthHeaders()
+		...getSpeedAuthHeaders()
 	};
 }
 

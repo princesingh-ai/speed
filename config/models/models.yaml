@@ -1,12 +1,16 @@
 models:
   gemma-reasoning:
+    kind: llama_server
     endpoint: http://127.0.0.1:8080
-    model: /home/prince/projects/speed/models/gemma4-12B/gemma-4-12B-it-qat-UD-Q4_K_XL.gguf
-    capabilities:
-      - reasoning
+    endpoint_env: SPEED_GEMMA_ENDPOINT
+    model: models/gemma4-12B/gemma-4-12B-it-qat-UD-Q4_K_XL.gguf
+    model_env: SPEED_GEMMA_MODEL
+    capabilities: [reasoning, general, coding]
 
   laya:
-    endpoint: http://127.0.0.1:0000
-    model: /home/prince/projects/speed/models/laya
-    capabilities:
-      - routing
+    kind: in_process
+    model: models/laya
+    model_env: SPEED_LAYA_MODEL
+    device: cuda
+    device_env: SPEED_LAYA_DEVICE
+    capabilities: [routing]

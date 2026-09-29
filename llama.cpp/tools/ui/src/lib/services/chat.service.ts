@@ -44,7 +44,7 @@ import type {
 } from '$lib/types/api';
 import { isAbortError } from '$lib/utils/abort';
 import { ApiError } from '$lib/utils/api-fetch';
-import { getAuthHeaders, getJsonHeaders, getSnapJsonHeaders } from '$lib/utils/api-headers';
+import { getAuthHeaders, getJsonHeaders, getSpeedJsonHeaders } from '$lib/utils/api-headers';
 import { formatAttachmentText } from '$lib/utils/formatters';
 import { streamIdentity } from '$lib/utils/stream-identity';
 
@@ -872,7 +872,7 @@ export class ChatService {
 		try {
 			const response = await fetch(API_CHAT.COMPLETIONS, {
 				body: JSON.stringify(requestBody),
-				headers: getSnapJsonHeaders(),
+				headers: getSpeedJsonHeaders(),
 				method: 'POST',
 				signal
 			});
@@ -1223,7 +1223,7 @@ export class ChatService {
 		}
 
 		try {
-			const headers: Record<string, string> = { ...getSnapJsonHeaders() };
+			const headers: Record<string, string> = { ...getSpeedJsonHeaders() };
 
 			// tag streaming requests with the conversation id, this single header is the opt in for the
 			// server side replay buffer and powers discoverActiveStream on tab reopen. with an explicit
@@ -1353,7 +1353,7 @@ export class ChatService {
 		try {
 			const res = await fetch(API_CHAT.CONTROL, {
 				body: JSON.stringify(body),
-				headers: getSnapJsonHeaders(),
+				headers: getSpeedJsonHeaders(),
 				method: 'POST'
 			});
 

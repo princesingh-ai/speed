@@ -1,12 +1,14 @@
-from fastapi import APIRouter, Header, HTTPException
+from fastapi import APIRouter, Header, HTTPException, Depends, Response
 from fastapi.responses import StreamingResponse
 
 from app.api.schemas.chat import ChatCompletionRequest
 from app.inference.service import InferenceService
 from app.routing.service import RoutingService
+from app.security.dependencies import require_permission
+from app.security.models import Permission
 
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(require_permission(Permission.CHAT_USE))])
 
 routing_service = RoutingService()
 inference_service = InferenceService()
@@ -15,6 +17,7 @@ inference_service = InferenceService()
 @router.post("/v1/chat/completions")
 async def chat_completions(
     request: ChatCompletionRequest,
+    response: Response,
     x_conversation_id: str | None = Header(
         default=None,
         alias="X-Conversation-Id",
@@ -35,7 +38,8 @@ async def chat_completions(
         "",
     )
 
-    analysis, model = routing_service.route(user_message)
+    analysis, model = await routing_service.route(user_message)
+    response.headers["X-SPEED-Task-Analysis"] = analysis.mode
 
     if model is None:
         raise HTTPException(
@@ -61,13 +65,14 @@ async def chat_completions(
             headers={
                 "Cache-Control": "no-cache",
                 "X-Accel-Buffering": "no",
+                "X-SPEED-Task-Analysis": analysis.mode,
             },
         )
 
-    response = await inference_service.chat(
+    completion = await inference_service.chat(
         messages=messages,
         model=model,
         conversation_id=x_conversation_id,
     )
 
-    return response
+    return completion

@@ -8,12 +8,12 @@ second conversation system. `/phase1/` remains a developer inspection/demo view.
 
 Ordinary chat remains the default, including small questions, manual model
 selection, existing tool calls, MCP attachments and the llama agentic loop.
-Enable **SPEED agent** above the composer to submit a Phase 1 workflow. Open
-**Connect to SPEED**, authenticate with a SPEED account authorized for agent
-execution, and select Document, Document + local MCP, or Coding sandbox.
-SPEED and Snap have separate authentication domains. SPEED credentials/tokens
-are memory-only; refresh requires connecting again. Snap logout also disconnects
-SPEED. The local-agent label describes execution on the server workspace, not an
+Sign in once through **Sign in to SPEED**, then enable **SPEED agent** above the
+composer. Open **Agent settings** and select Document, Document + local MCP, or
+Coding sandbox. Chat and agent APIs share the backend-verified JWT. The token is
+stored under `SPEED.auth.accessToken`; refresh verifies it through `/api/v1/auth/me`.
+Logout and expired-session responses clear both chat and agent authentication.
+The local-agent label describes execution on the server workspace, not an
 air-gap or a guarantee about all ordinary-chat tools.
 
 Enter the report's server-workspace-relative path. Browser uploads and chat
@@ -85,7 +85,8 @@ message content field. Updates never append to another active conversation or
 recreate a deleted message. A copied/forked link with changed conversation or
 parent IDs cannot subscribe or download; its existing prose remains readable.
 Task connections are not shared across owners. Snapshots and final messages are
-stored in the browser, just like existing chat history; tokens are not.
+stored in the browser, just like existing chat history. The separate auth storage
+key contains the verified SPEED JWT; task messages never contain tokens.
 
 Approve/Reject uses the existing authenticated permission endpoints and requires
 an explicit click. Backend RBAC, ownership, expiry and task-bound WebSocket
@@ -124,61 +125,9 @@ No passing test/build/typecheck claim is made for the Mac edit-only session.
 
 ## Commands for the authorized server operator
 
-Run from the SPEED server checkout, after reviewing its local changes. No
-submodule initialization is needed: llama.cpp is normal tracked source despite
-the leftover `.gitmodules` entry in the imported revision.
-
-```sh
-git switch feature/phase1-agent-orchestration
-git pull --ff-only origin feature/phase1-agent-orchestration
-```
-
-This UI patch changes no manifests or lockfiles. The earlier Phase 1 Python
-manifest already added dependencies without updating `uv.lock`; resolve that
-separately on the authorized machine and review the resulting lockfile:
-
-```sh
-uv lock
-uv sync
-uv run pytest tests/phase1
-npm --prefix llama.cpp/tools/ui ci
-npm --prefix llama.cpp/tools/ui run check
-npm --prefix llama.cpp/tools/ui run test:unit -- --run tests/unit/speed-trace.test.ts tests/unit/speed-api.test.ts tests/unit/speed-messages.test.ts
-npm --prefix llama.cpp/tools/ui run test:client -- --run tests/client/speed-activity.svelte.test.ts
-npm --prefix llama.cpp/tools/ui run build
-```
-
-Client tests require the deployment's existing Playwright Chromium installation.
-Prepare approved package/browser caches separately if the machine is offline.
-The earlier Python MCP version requirement must also be resolved against the
-operator's approved package index; this session did not install or verify it.
-
-The inspected CMake integration embeds `tools/ui/dist` into llama-server. Building
-only the UI does not update an already-running binary. Assuming the deployment's
-existing build directory is `llama.cpp/build`, preserve its cached GPU/toolchain
-options and use the freshly built source assets rather than downloaded prebuilt UI:
-
-```sh
-cmake -S llama.cpp -B llama.cpp/build -DLLAMA_USE_PREBUILT_UI=OFF
-cmake --build llama.cpp/build --target llama-server --parallel
-```
-
-If the deployment uses a different build directory, substitute that existing
-directory in both commands. Restart the deployment's llama-server process using
-its existing model/router arguments and supervisor; restart the SPEED backend to
-load `final_response`. No service-unit names or launch flags are recorded in this
-checkout, so an exact `systemctl restart` command cannot truthfully be supplied.
-The existing gateway `/api/v1/` WebSocket proxy already supports this integration.
-The login stabilization below requires reloading the gateway configuration.
-For UI development only,
-point `VITE_PUBLIC_SERVER_ORIGIN` at the gateway; Vite now proxies `/api/v1` and WS
-to that same configured origin. Do not point it at llama-server alone.
-
-After restart, reopen the gateway chat (and accept the PWA update if offered),
-connect SPEED, and try the document workflow with demonstration analysis. Verify
-file read, parallel analysis, merge, final prose and DOCX download; reopen the
-conversation and reconnect. Then verify explicit MCP/sandbox approval and denial
-on the authorized machine. Do not claim this checklist was exercised on the Mac.
+Use [the SPEED authentication and model runbook](phase1-runtime.md) for the current
+ordered validation/build/startup commands. Preserve deployment changes before a
+fast-forward pull. No commands in that runbook were executed on this Mac.
 
 ## Stabilization: login, MCP cleanup and chat types
 
@@ -195,8 +144,8 @@ The layout decides redirects from authentication state and Svelte route identity
 not `pathname` (which stays `/` across hash routes). While authentication is
 checking it does not redirect. An unauthenticated protected route enters
 `#/login`; successful login or an already-authenticated login route enters `#/`.
-Settled public/protected routes do not redirect. Authentication APIs and backend
-authorization are unchanged.
+Settled public/protected routes do not redirect. The subsequent unified SPEED
+login uses backend JWT authentication; ownership and RBAC remain authoritative.
 
 | Gateway route | Behavior |
 | --- | --- |
@@ -208,10 +157,10 @@ authorization are unchanged.
 | Static/Svelte assets | Existing root proxy to llama-server |
 | `/phase1/` | Existing developer/debug page through SPEED |
 
-MCP returned tool errors, missing structured results and discovery failures are
+MCP returned tool errors, invalid payloads and discovery failures are
 recorded inside the client context, then raised after clean context exit. This
 prevents our intended `RuntimeError("MCP tool failed")` from being wrapped during
-AnyIO task-group cleanup. Real stdio calls, structured successes and telemetry
+AnyIO task-group cleanup. Real stdio calls, structured-object and JSON text-block successes, and telemetry
 remain intact. Transport, protocol and cleanup exceptions still propagate with
 their original semantics; cleanup failures are not hidden by mapped tool errors.
 
@@ -224,59 +173,9 @@ selection/loading/regeneration when a callback is supplied.
 
 ### Server validation order (not executed on the Mac)
 
-Preserve the server's existing `.gitignore`, `.npmrc`, lockfile and generated-file
-changes before pulling through the operator's normal review process. Do not
-discard them to make a pull succeed. Once a safe fast-forward pull has completed,
-the first validation commands from the SPEED checkout are:
-
-```sh
-uv run pytest tests/phase1
-npm --prefix llama.cpp/tools/ui run check
-```
-
-Then run the focused UI regressions with the existing browser installation:
-
-```sh
-npm --prefix llama.cpp/tools/ui run test:unit -- --run tests/unit/router.service.test.ts tests/unit/speed-messages.test.ts
-npm --prefix llama.cpp/tools/ui run test:client -- --run tests/client/speed-stabilization.svelte.test.ts tests/client/speed-activity.svelte.test.ts
-```
-
-Only after backend tests and Svelte checking pass, build the UI source and embed
-it into llama-server using the existing configured build directory:
-
-```sh
-npm --prefix llama.cpp/tools/ui run build
-cmake -S llama.cpp -B llama.cpp/build -DLLAMA_USE_PREBUILT_UI=OFF
-cmake --build llama.cpp/build --target llama-server --parallel
-```
-
-Manual UI builds output `llama.cpp/tools/ui/dist` unless `LLAMA_UI_OUT_DIR` is
-overridden. The CMake `llama-ui-assets` target prefers that source `dist` and
-generates `ui.cpp`/`ui.h` for the binary. Use the actual existing build directory
-if different, preserving its cached GPU/toolchain options. Restart llama-server
-with its existing deployment arguments and restart SPEED for the MCP change.
-No supervisor/service names are recorded here; use the deployment's actual ones.
-
-The following NGINX commands assume its running prefix is this checkout's
-`infrastructure/nginx/`, matching the config's relative log/PID paths. If it uses
-an installed config or another prefix, deploy this config through that existing
-setup and use its matching test/reload command instead:
-
-```sh
-nginx -p "$PWD/infrastructure/nginx/" -c conf/nginx.conf -t
-nginx -p "$PWD/infrastructure/nginx/" -c conf/nginx.conf -s reload
-curl -sS --compressed -D - -o /dev/null http://127.0.0.1:9100/login
-curl -sS --compressed -L -D - -o /dev/null http://127.0.0.1:9100/login
-```
-
-Expect a 302 with a location ending in `/#/login`, followed by a 200 HTML shell,
-not llama-server JSON 404. HTTP checks alone cannot verify client routing.
-After the build/restarts/reload, open `http://SERVER:9100/login` in a signed-out
-browser: expect the existing login UI at `/#/login`, then chat at `/#/` after
-valid authentication. Revisit `/login` while authenticated and verify it returns
-to chat. Sign out and open `/#/chat/<existing-id>`; expect login without a loop.
-Accept the PWA update if offered. Runtime login success remains unverified until
-these server/browser checks pass.
+Follow [phase1-runtime.md](phase1-runtime.md#server-validation-sequence). The working
+NGINX login redirect and hash-router tests remain unchanged. Client tests require
+Playwright Chromium on the Linux validation machine.
 
 ## Phase 1 limits
 

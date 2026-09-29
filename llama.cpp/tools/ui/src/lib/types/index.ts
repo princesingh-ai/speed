@@ -39,7 +39,7 @@ export type {
 } from './api';
 
 // Auth types
-export type { SnapAuthLoginResponse, SnapAuthUser } from './auth';
+export type { SpeedAuthLoginResponse, SpeedAuthUser } from './auth';
 
 // Chat types
 export type {

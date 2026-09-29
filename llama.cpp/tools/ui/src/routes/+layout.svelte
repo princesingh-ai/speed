@@ -358,7 +358,7 @@
 <Tooltip.Provider delayDuration={TOOLTIP_DELAY_DURATION}>
 	{#if authStore.isChecking}
 		<main class="flex min-h-dvh items-center justify-center bg-background text-sm text-muted-foreground">
-			<span class="shimmer-text">Loading Snap</span>
+			<span class="shimmer-text">Loading SPEED</span>
 		</main>
 	{:else if canRenderProtectedApp}
 		<div class="flex flex-col md:flex-row">
@@ -380,7 +380,7 @@
 		{@render children?.()}
 	{:else}
 		<main class="flex min-h-dvh items-center justify-center bg-background text-sm text-muted-foreground">
-			<span class="shimmer-text">Loading Snap</span>
+			<span class="shimmer-text">Loading SPEED</span>
 		</main>
 	{/if}
 

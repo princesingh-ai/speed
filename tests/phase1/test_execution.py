@@ -96,7 +96,7 @@ def test_analysis_confidence_and_missing_route(tmp_path):
     assert TaskAnalysis(task_type="coding", confidence=0.8).confidence == 0.8
     config = tmp_path / "models.yaml"
     config.write_text("models: {}", encoding="utf-8")
-    assert ModelRouter(str(config)).route("reasoning") is None
+    assert asyncio.run(ModelRouter(str(config)).route("reasoning")) is None
 
 
 @pytest.mark.parametrize("fail", [False, True])

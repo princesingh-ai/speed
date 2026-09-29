@@ -1,11 +1,13 @@
 import { base } from '$app/paths';
 import { API_AUTH, HEADERS } from '$lib/constants';
 import { MimeTypeApplication } from '$lib/enums';
-import type { SnapAuthLoginResponse, SnapAuthUser } from '$lib/types';
+import type { SpeedAuthLoginResponse, SpeedAuthUser } from '$lib/types';
 
 export class AuthService {
-	static async login(username: string, password: string): Promise<SnapAuthLoginResponse> {
+	static async login(username: string, password: string): Promise<SpeedAuthLoginResponse> {
 		const response = await fetch(`${base}${API_AUTH.LOGIN}`, {
+			cache: 'no-store',
+			signal: AbortSignal.timeout(15000),
 			body: JSON.stringify({ password, username }),
 			headers: {
 				[HEADERS.CONTENT_TYPE]: MimeTypeApplication.JSON
@@ -17,7 +19,7 @@ export class AuthService {
 			throw new Error(await AuthService.parseErrorMessage(response));
 		}
 
-		const data = (await response.json()) as SnapAuthLoginResponse;
+		const data = (await response.json()) as SpeedAuthLoginResponse;
 
 		if (!data.access_token) {
 			throw new Error('Authentication failed.');
@@ -26,8 +28,10 @@ export class AuthService {
 		return data;
 	}
 
-	static async me(token: string): Promise<SnapAuthUser> {
+	static async me(token: string): Promise<SpeedAuthUser> {
 		const response = await fetch(`${base}${API_AUTH.ME}`, {
+			cache: 'no-store',
+			signal: AbortSignal.timeout(15000),
 			headers: {
 				[HEADERS.AUTHORIZATION]: `${HEADERS.BEARER}${token}`
 			}
@@ -37,22 +41,14 @@ export class AuthService {
 			throw new Error(await AuthService.parseErrorMessage(response));
 		}
 
-		return response.json() as Promise<SnapAuthUser>;
+		const user = await response.json() as SpeedAuthUser;
+		if (!user.id || !user.username || !Array.isArray(user.roles)) {
+			throw new Error('Invalid SPEED session. Please sign in again.');
+		}
+		return user;
 	}
 
 	private static async parseErrorMessage(response: Response): Promise<string> {
-		try {
-			const data = await response.json();
-
-			if (typeof data?.detail === 'string') return data.detail;
-
-			if (typeof data?.message === 'string') return data.message;
-
-			if (typeof data?.error === 'string') return data.error;
-		} catch {
-			// fall through to the generic status message
-		}
-
-		return response.status === 401 ? 'Invalid username or password.' : 'Authentication failed.';
+		return response.status === 401 ? 'Invalid username or password.' : 'Unable to sign in. Please try again.';
 	}
 }

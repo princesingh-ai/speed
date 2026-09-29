@@ -1,5 +1,6 @@
 import asyncio
 import json
+import logging
 from urllib.parse import urlsplit
 
 from app.core.config import settings
@@ -10,9 +11,10 @@ from app.tools.registry import tool_registry
 
 
 async def local_completion(prompt: str) -> str:
-    model = ModelRouter().route("reasoning")
+    model = await ModelRouter().route("reasoning")
     if model is None:
         raise RuntimeError("No reasoning model configured")
+    logging.getLogger("speed.models").info("planner inference selected model=%s", model.name)
     # Phase 1 never sends confidential prompts to a public endpoint.
     url = urlsplit(model.endpoint)
     if url.scheme not in {"http", "https"} or url.hostname not in {"127.0.0.1", "localhost", "::1"}:

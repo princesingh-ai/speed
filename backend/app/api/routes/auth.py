@@ -1,3 +1,5 @@
+import logging
+
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.api.schemas.auth import (
@@ -10,6 +12,7 @@ from app.security.jwt import create_access_token
 from app.security.store import get_user, verify_password
 
 
+logger = logging.getLogger("speed.auth")
 router = APIRouter(
     prefix="/api/v1/auth",
     tags=["auth"],
@@ -22,6 +25,7 @@ async def login(request: LoginRequest):
     user = get_user(request.username)
 
     if user is None:
+        logger.info("authentication failed")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid username or password",
@@ -31,12 +35,14 @@ async def login(request: LoginRequest):
         request.password,
         user.password_hash,
     ):
+        logger.info("authentication failed")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid username or password",
         )
 
     token = create_access_token(user)
+    logger.info("authentication succeeded user=%s", user.id)
 
     return TokenResponse(
         access_token=token,

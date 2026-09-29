@@ -5,7 +5,7 @@ from docx import Document
 
 from app.orchestration.artifacts import ArtifactRuntime
 from app.orchestration.events import EventBus, Trace
-from app.orchestration.mcp_runtime import MCPRuntime
+from app.orchestration.mcp_runtime import MCPRuntime, decode_result
 from app.orchestration.sandbox import SandboxRequest, SandboxResult, SandboxRuntime, DockerAdapter
 from app.orchestration.runtimes import RuntimeRouter
 from app.orchestration.models import PlanStep
@@ -163,6 +163,47 @@ def test_mcp_client_cleanup_on_error(monkeypatch):
     assert lifecycle == ["entered", "closed"]
     assert bus.replay("t")[-1].event_type == "mcp.failed"
     assert "private server failure" not in str(bus.replay("t"))
+
+
+@pytest.mark.parametrize("structured", [False, True])
+def test_mcp_sdk_success_channels_and_clean_exit(monkeypatch, structured):
+    import mcp
+    from mcp.types import CallToolResult, TextContent
+    from types import SimpleNamespace
+    exits = []
+    result = CallToolResult(content=[TextContent(type="text", text='{"value": 42}')],
+                            structured_content={"value": 42} if structured else None)
+    class Client:
+        def __init__(self, parameters):
+            pass
+        async def __aenter__(self):
+            return self
+        async def __aexit__(self, exc_type, exc, tb):
+            exits.append(exc_type)
+        async def list_tools(self):
+            return SimpleNamespace(tools=[SimpleNamespace(name="calculator")])
+        async def call_tool(self, *args):
+            return result
+    monkeypatch.setattr(mcp, "Client", Client)
+    bus = EventBus()
+    assert asyncio.run(MCPRuntime().call("calculator", {}, Trace(bus, "t"))) == {"value": 42}
+    assert exits == [None]
+    assert [e.event_type for e in bus.replay("t")] == ["mcp.started", "mcp.completed"]
+    assert all(not e.is_mock for e in bus.replay("t"))
+
+
+@pytest.mark.parametrize("text", ["not JSON", "42", "[]", "null"])
+def test_mcp_rejects_non_object_text(text):
+    from mcp.types import CallToolResult, TextContent
+    with pytest.raises(RuntimeError, match="MCP tool failed"):
+        decode_result(CallToolResult(content=[TextContent(type="text", text=text)]))
+
+
+def test_mcp_error_flag_overrides_valid_payload():
+    from mcp.types import CallToolResult, TextContent
+    with pytest.raises(RuntimeError, match="MCP tool failed"):
+        decode_result(CallToolResult(content=[TextContent(type="text", text='{"value": 42}')],
+                                     structured_content={"value": 42}, is_error=True))
 
 
 @pytest.mark.parametrize("missing_tool,is_error,content,cleanup_fails", [

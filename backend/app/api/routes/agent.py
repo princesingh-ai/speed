@@ -95,7 +95,7 @@ async def stream(websocket: WebSocket, task_id: str):
                    "events": [e.model_dump(mode="json") for e in replay],
                    "history_truncated": bool(replay and replay[0].sequence > after + 1)}
         await websocket.send_json(initial)
-        logger.info("websocket connected task=%s", task_id)
+        logger.info("websocket connected task=%s replay_after=%s replay_count=%s", task_id, after, len(replay))
         while True:
             receiver = asyncio.create_task(websocket.receive())
             next_event = asyncio.create_task(queue.get())

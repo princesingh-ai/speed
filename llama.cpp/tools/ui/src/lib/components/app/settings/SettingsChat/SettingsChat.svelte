@@ -167,7 +167,7 @@
 											{authStore.user?.username ?? 'Signed in'}
 										</p>
 										<p class="truncate text-xs text-muted-foreground">
-											{authStore.user?.role ?? 'authenticated'}
+											{authStore.user?.roles.join(', ') ?? 'authenticated'}
 										</p>
 									</div>
 

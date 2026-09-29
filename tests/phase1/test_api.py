@@ -90,6 +90,48 @@ def test_auth_required_and_dashboard_static():
         assert client.get("/phase1/app.js").status_code == 200
 
 
+def test_development_login_supplies_real_agent_session(caplog):
+    with TestClient(create_app()) as client:
+        assert client.post("/api/v1/auth/login", json={"username": "admin", "password": "wrong"}).status_code == 401
+        response = client.post("/api/v1/auth/login", json={"username": "admin", "password": "admin-password"})
+        assert response.status_code == 200
+        headers = {"Authorization": "Bearer " + response.json()["access_token"]}
+        assert "admin-password" not in caplog.text
+        assert response.json()["access_token"] not in caplog.text
+        user = client.get("/api/v1/auth/me", headers=headers).json()
+        assert user == {"id": "user-admin", "username": "admin", "roles": ["admin"]}
+        started = client.post("/api/v1/agent/tasks", headers=headers,
+                              json={"objective": "Review", "demo_mode": True})
+        assert started.status_code == 202
+        path = "/api/v1/agent/tasks/" + started.json()["task_id"]
+        assert client.get(path, headers=headers).status_code == 200
+        assert client.post(path + "/ticket", headers=headers).status_code == 200
+        assert client.get(path).status_code in {401, 403}
+        other = client.post("/api/v1/auth/login", json={"username": "testuser", "password": "test-password"})
+        assert client.get(path, headers={"Authorization": "Bearer " + other.json()["access_token"]}).status_code == 404
+        assert client.get("/api/v1/models/health").status_code in {401, 403}
+        assert client.post("/v1/chat/completions", json={"messages": []}).status_code in {401, 403}
+
+
+def test_same_login_authorizes_normal_chat_and_health(monkeypatch):
+    from unittest.mock import AsyncMock
+    from app.api.routes import chat, models
+    from app.task.models import TaskAnalysis
+    route = AsyncMock(return_value=(TaskAnalysis(task_type="general", mode="deterministic_fallback"), object()))
+    monkeypatch.setattr(chat.routing_service, "route", route)
+    monkeypatch.setattr(chat.inference_service, "chat", AsyncMock(return_value={"choices": []}))
+    monkeypatch.setattr(models.model_router, "health", AsyncMock(return_value={"availability": "unavailable"}))
+    with TestClient(create_app()) as client:
+        token = client.post("/api/v1/auth/login", json={"username": "admin", "password": "admin-password"}).json()["access_token"]
+        headers = {"Authorization": "Bearer " + token}
+        response = client.post("/v1/chat/completions", headers=headers,
+                               json={"messages": [{"role": "user", "content": "Hello"}]})
+        assert response.status_code == 200
+        assert response.headers["X-SPEED-Task-Analysis"] == "deterministic_fallback"
+        assert client.get("/api/v1/models/health", headers=headers).status_code == 200
+        assert all("laya" not in model["id"] for model in client.get("/v1/models").json()["data"])
+
+
 def test_gateway_configuration_preserves_inference():
     from pathlib import Path
     conf = Path("infrastructure/nginx/conf/nginx.conf").read_text()

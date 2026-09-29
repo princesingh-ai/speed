@@ -1,10 +1,10 @@
-export interface SnapAuthLoginResponse {
+export interface SpeedAuthLoginResponse {
 	access_token: string;
 	token_type: 'bearer' | string;
 }
 
-export interface SnapAuthUser {
-	user_id: string;
+export interface SpeedAuthUser {
+	id: string;
 	username: string;
-	role: string;
+	roles: string[];
 }

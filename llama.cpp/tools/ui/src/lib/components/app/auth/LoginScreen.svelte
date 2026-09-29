@@ -1,13 +1,12 @@
 <script lang="ts">
-	import { LoaderCircle } from '@lucide/svelte';
+	import { LoaderCircle, Shield } from '@lucide/svelte';
 	import { goto } from '$app/navigation';
-	import { Logo } from '$lib/components/app/misc';
 	import { Alert, AlertDescription } from '$lib/components/ui/alert';
 	import { Button } from '$lib/components/ui/button';
 	import * as Card from '$lib/components/ui/card';
 	import { Input } from '$lib/components/ui/input';
 	import { Label } from '$lib/components/ui/label';
-	import { APP_NAME, ROUTES } from '$lib/constants';
+	import { ROUTES } from '$lib/constants';
 	import { authStore } from '$lib/stores';
 
 	let username = $state('');
@@ -16,7 +15,6 @@
 	let localError = $state('');
 
 	const canSubmit = $derived(username.trim().length > 0 && password.trim().length > 0);
-	const title = $derived(APP_NAME === 'llama-ui' ? 'Snap' : APP_NAME);
 
 	async function handleSubmit() {
 		if (!canSubmit || isSubmitting) return;
@@ -40,14 +38,14 @@
 		<Card.Header class="px-0">
 			<div class="mb-3 flex items-center gap-3">
 				<div class="flex h-9 w-9 items-center justify-center rounded-full bg-muted text-foreground">
-					<Logo class="h-4 w-4" />
+					<Shield class="h-4 w-4" aria-hidden="true" />
 				</div>
 
-				<p class="text-sm font-semibold">{title}</p>
+				<p class="text-sm font-semibold tracking-widest">SPEED</p>
 			</div>
 
-			<Card.Title class="text-xl">Sign in to Snap</Card.Title>
-			<Card.Description>Sign in to continue</Card.Description>
+			<Card.Title class="text-xl">Sign in to SPEED</Card.Title>
+			<Card.Description>Secure local AI workbench</Card.Description>
 		</Card.Header>
 
 		<Card.Content class="px-0">
@@ -56,40 +54,40 @@
 				void handleSubmit();
 			}}>
 				<div class="space-y-2">
-					<Label for="snap-username">Username</Label>
+					<Label for="speed-username">Username</Label>
 					<Input
 						aria-invalid={Boolean(localError)}
 						autocomplete="username"
 						bind:value={username}
 						disabled={isSubmitting}
-						id="snap-username"
+						id="speed-username"
 						required
 						type="text"
 					/>
 				</div>
 
 				<div class="space-y-2">
-					<Label for="snap-password">Password</Label>
+					<Label for="speed-password">Password</Label>
 					<Input
 						aria-invalid={Boolean(localError)}
 						autocomplete="current-password"
 						bind:value={password}
 						disabled={isSubmitting}
-						id="snap-password"
+						id="speed-password"
 						required
 						type="password"
 					/>
 				</div>
 
 				{#if localError}
-					<Alert class="py-2" variant="destructive">
+					<Alert role="alert" class="py-2" variant="destructive">
 						<AlertDescription>{localError}</AlertDescription>
 					</Alert>
 				{/if}
 
 				<Button class="w-full" disabled={!canSubmit || isSubmitting} type="submit">
 					{#if isSubmitting}
-						<LoaderCircle class="h-4 w-4 animate-spin" />
+						<LoaderCircle class="h-4 w-4 animate-spin motion-reduce:animate-none" aria-hidden="true" />
 					{/if}
 
 					Sign in

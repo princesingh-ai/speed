@@ -103,8 +103,8 @@ def test_phase1_rejects_public_inference_endpoint(monkeypatch):
     from types import SimpleNamespace
     from app.orchestration import planner
     class Router:
-        def route(self, capability):
-            return SimpleNamespace(endpoint="https://example.com", model="unapproved")
+        async def route(self, capability):
+            return SimpleNamespace(name="unapproved", endpoint="https://example.com", model="unapproved")
     monkeypatch.setattr(planner, "ModelRouter", Router)
     with pytest.raises(PermissionError):
         asyncio.run(planner.local_completion("private prompt"))

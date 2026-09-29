@@ -1,5 +1,9 @@
+import logging
+
 from app.inference.llama_client import LlamaClient
 from app.routing.models import ModelConfig
+
+logger = logging.getLogger("speed.models")
 
 
 class InferenceService:
@@ -18,9 +22,12 @@ class InferenceService:
         try:
             return await client.chat(
                 messages=messages,
-                model=model.model,
+                model=model.model_id,
                 conversation_id=conversation_id,
             )
+        except Exception:
+            logger.warning("model inference failed id=%s", model.name)
+            raise
         finally:
             await client.close()
 
@@ -37,10 +44,13 @@ class InferenceService:
         try:
             async for chunk in client.chat_stream(
                 messages=messages,
-                model=model.model,
+                model=model.model_id,
                 conversation_id=conversation_id,
             ):
                 yield chunk
 
+        except Exception:
+            logger.warning("model stream failed id=%s", model.name)
+            raise
         finally:
             await client.close()

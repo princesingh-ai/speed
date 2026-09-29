@@ -1,5 +1,8 @@
 # Phase 1: execution workbench
 
+For the unified SPEED login, model configuration/health and current Linux
+validation sequence, see [the runtime runbook](phase1-runtime.md).
+
 ## Architecture
 
 Existing `TaskService` remains the task/ownership source. `AgentService` adds an
@@ -53,7 +56,7 @@ Category highlighting dims other rows to preserve graph geometry.
 | `WS /api/v1/agent/tasks/{id}/events` | First-frame authentication and live replay |
 | `GET /api/v1/agent/tasks/{id}/artifacts/{artifact_id}` | Registered artifact download only |
 
-REST uses `Authorization: Bearer <JWT>`. The UI signs in through the existing
+REST uses `Authorization: Bearer <JWT>`. The standalone debug UI signs in through the existing
 `POST /api/v1/auth/login` endpoint. Tokens remain in browser memory, not storage or
 URLs. After refresh, sign in again; the URL fragment retains only the task ID.
 

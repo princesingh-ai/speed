@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
 from pathlib import Path
+import logging
 from app.api.routes.agent import router as agent_router
 from app.orchestration.service import AgentService
 
@@ -17,6 +18,19 @@ from app.api.routes.tools import router as tools_router
 
 @asynccontextmanager
 async def lifespan(app):
+    logger = logging.getLogger("speed")
+    if not logger.handlers and not logging.getLogger().handlers:
+        handler = logging.StreamHandler()
+        handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(name)s %(message)s"))
+        logger.addHandler(handler)
+    logger.setLevel(logging.INFO)
+    from app.api.routes.models import model_router
+    for model in model_router.models.values():
+        logger.info("model configured id=%s kind=%s endpoint=%s artifact=%s availability=%s",
+                    model.name, model.kind, model.endpoint,
+                    "present" if Path(model.model).exists() else "missing",
+                    ("missing_artifact" if not Path(model.model).exists() else "not_loaded")
+                    if model.kind == "in_process" else "not_probed")
     try:
         yield
     finally:

@@ -45,6 +45,13 @@ ROLES: dict[str, Role] = {
 
 
 USERS: dict[str, User] = {
+    # Deliberate development account; replace this store before production use.
+    "admin": User(
+        id="user-admin",
+        username="admin",
+        password_hash=password_hash.hash("admin-password"),
+        roles=["admin"],
+    ),
     "prince": User(
         id="user-prince",
         username="prince",

@@ -6,8 +6,8 @@ export const API_MODELS = {
 };
 
 export const API_AUTH = {
-	LOGIN: '/auth/login',
-	ME: '/auth/me'
+	LOGIN: '/api/v1/auth/login',
+	ME: '/api/v1/auth/me'
 };
 
 // chat completion routes, the control route drives realtime inference (e.g. end reasoning)

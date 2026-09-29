@@ -9,13 +9,21 @@ export class SpeedError extends Error {
 	}
 }
 
+async function checkResponse(response: Response, token: string) {
+	if (response.status === 401) {
+		const { authStore } = await import('$lib/stores/auth.svelte');
+		if (authStore.token === token) authStore.handleUnauthorized();
+	}
+	if (!response.ok) throw new SpeedError(response.status);
+}
+
 export async function request<T>(path: string, token: string, init: RequestInit = {}): Promise<T> {
 	const response = await fetch(`/api/v1/${path}`, {
 		...init, cache: 'no-store', credentials: 'same-origin',
 		signal: init.signal ?? AbortSignal.timeout(30000),
 		headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }
 	});
-	if (!response.ok) throw new SpeedError(response.status);
+	await checkResponse(response, token);
 	return response.json();
 }
 
@@ -38,7 +46,7 @@ export async function downloadArtifact(taskId: string, artifact: Artifact, token
 	const response = await fetch(`/api/v1/${taskPath(taskId)}/artifacts/${routeId(artifact.id)}`, {
 		headers: { Authorization: `Bearer ${token}` }, cache: 'no-store'
 	});
-	if (!response.ok) throw new SpeedError(response.status);
+	await checkResponse(response, token);
 	const url = URL.createObjectURL(await response.blob());
 	const anchor = document.createElement('a');
 	anchor.href = url;
