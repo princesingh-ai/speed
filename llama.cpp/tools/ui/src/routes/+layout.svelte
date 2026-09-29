@@ -59,8 +59,6 @@
 	let isLoginRoute = $derived(page.route.id === '/login');
 	let canRenderProtectedApp = $derived(authStore.isAuthenticated && !isLoginRoute);
 	let canRenderPublicRoute = $derived(!authStore.isAuthenticated && isLoginRoute);
-	const loginPath = `${base}/login`;
-	const homePath = `${base}/`;
 
 	// Keep the hook object intact: destructuring needRefreshByStorage reads the getter once and freezes it
 	const pwa = usePwa();
@@ -147,15 +145,8 @@
 	$effect(() => {
 		if (!browser || authStore.isChecking) return;
 
-		const target = !authStore.isAuthenticated
-			? isLoginRoute
-				? null
-				: loginPath
-			: isLoginRoute
-				? homePath
-				: null;
-
-		if (!target || page.url.pathname === target) return;
+		const target = RouterService.authRedirect(authStore.isAuthenticated, authStore.isChecking, page.route.id);
+		if (!target) return;
 
 		untrack(() => {
 			void goto(target, { replaceState: true });

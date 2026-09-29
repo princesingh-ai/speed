@@ -168,8 +168,9 @@ directory in both commands. Restart the deployment's llama-server process using
 its existing model/router arguments and supervisor; restart the SPEED backend to
 load `final_response`. No service-unit names or launch flags are recorded in this
 checkout, so an exact `systemctl restart` command cannot truthfully be supplied.
-The existing gateway `/api/v1/` WebSocket proxy already supports this integration;
-no NGINX change or reload is required by this patch. For UI development only,
+The existing gateway `/api/v1/` WebSocket proxy already supports this integration.
+The login stabilization below requires reloading the gateway configuration.
+For UI development only,
 point `VITE_PUBLIC_SERVER_ORIGIN` at the gateway; Vite now proxies `/api/v1` and WS
 to that same configured origin. Do not point it at llama-server alone.
 
@@ -178,6 +179,104 @@ connect SPEED, and try the document workflow with demonstration analysis. Verify
 file read, parallel analysis, merge, final prose and DOCX download; reopen the
 conversation and reconnect. Then verify explicit MCP/sandbox approval and denial
 on the authorized machine. Do not claim this checklist was exercised on the Mac.
+
+## Stabilization: login, MCP cleanup and chat types
+
+The UI uses `kit.router.type: 'hash'`, not history routing. `/login` is a real
+Svelte route, but the browser must enter it as `/#/login`. llama-server registers
+`/`, `/index.html` and embedded assets; it does not provide an arbitrary path
+fallback. The gateway now handles exactly `/login` with a temporary redirect to
+`/#/login`. The browser then requests `/` for the application shell, and Svelte
+renders the login page from the fragment. Keeping the literal `/login` URL would
+require changing the routing architecture; this fix retains the existing router.
+
+Authentication navigation now uses the same hash-route constants as chat.
+The layout decides redirects from authentication state and Svelte route identity,
+not `pathname` (which stays `/` across hash routes). While authentication is
+checking it does not redirect. An unauthenticated protected route enters
+`#/login`; successful login or an already-authenticated login route enters `#/`.
+Settled public/protected routes do not redirect. Authentication APIs and backend
+authorization are unchanged.
+
+| Gateway route | Behavior |
+| --- | --- |
+| `/` | Existing llama-server application shell |
+| `/login` | HTTP 302 to `/#/login`; Svelte renders login after loading `/` |
+| `/v1/*` | Existing SPEED proxy, with existing llama stream/lookup exceptions |
+| `/api/v1/*` | Existing SPEED proxy and task ownership checks |
+| WebSocket endpoints | Existing `/api/v1/` upgrade forwarding |
+| Static/Svelte assets | Existing root proxy to llama-server |
+| `/phase1/` | Existing developer/debug page through SPEED |
+
+MCP returned tool errors, missing structured results and discovery failures are
+recorded inside the client context, then raised after clean context exit. This
+prevents our intended `RuntimeError("MCP tool failed")` from being wrapped during
+AnyIO task-group cleanup. Real stdio calls, structured successes and telemetry
+remain intact. Transport, protocol and cleanup exceptions still propagate with
+their original semantics; cleanup failures are not hidden by mapped tool errors.
+
+The chat store keeps a stable local assistant after successful persistence and
+checks its ID, role, conversation and parent before starting SPEED. A separate
+optional reference supports error reporting. Failed/missing/mismatched creation
+does not start a task. The assistant model control now honestly accepts an
+optional regeneration callback: it shows a plain badge without one, and retains
+selection/loading/regeneration when a callback is supplied.
+
+### Server validation order (not executed on the Mac)
+
+Preserve the server's existing `.gitignore`, `.npmrc`, lockfile and generated-file
+changes before pulling through the operator's normal review process. Do not
+discard them to make a pull succeed. Once a safe fast-forward pull has completed,
+the first validation commands from the SPEED checkout are:
+
+```sh
+uv run pytest tests/phase1
+npm --prefix llama.cpp/tools/ui run check
+```
+
+Then run the focused UI regressions with the existing browser installation:
+
+```sh
+npm --prefix llama.cpp/tools/ui run test:unit -- --run tests/unit/router.service.test.ts tests/unit/speed-messages.test.ts
+npm --prefix llama.cpp/tools/ui run test:client -- --run tests/client/speed-stabilization.svelte.test.ts tests/client/speed-activity.svelte.test.ts
+```
+
+Only after backend tests and Svelte checking pass, build the UI source and embed
+it into llama-server using the existing configured build directory:
+
+```sh
+npm --prefix llama.cpp/tools/ui run build
+cmake -S llama.cpp -B llama.cpp/build -DLLAMA_USE_PREBUILT_UI=OFF
+cmake --build llama.cpp/build --target llama-server --parallel
+```
+
+Manual UI builds output `llama.cpp/tools/ui/dist` unless `LLAMA_UI_OUT_DIR` is
+overridden. The CMake `llama-ui-assets` target prefers that source `dist` and
+generates `ui.cpp`/`ui.h` for the binary. Use the actual existing build directory
+if different, preserving its cached GPU/toolchain options. Restart llama-server
+with its existing deployment arguments and restart SPEED for the MCP change.
+No supervisor/service names are recorded here; use the deployment's actual ones.
+
+The following NGINX commands assume its running prefix is this checkout's
+`infrastructure/nginx/`, matching the config's relative log/PID paths. If it uses
+an installed config or another prefix, deploy this config through that existing
+setup and use its matching test/reload command instead:
+
+```sh
+nginx -p "$PWD/infrastructure/nginx/" -c conf/nginx.conf -t
+nginx -p "$PWD/infrastructure/nginx/" -c conf/nginx.conf -s reload
+curl -sS --compressed -D - -o /dev/null http://127.0.0.1:9100/login
+curl -sS --compressed -L -D - -o /dev/null http://127.0.0.1:9100/login
+```
+
+Expect a 302 with a location ending in `/#/login`, followed by a 200 HTML shell,
+not llama-server JSON 404. HTTP checks alone cannot verify client routing.
+After the build/restarts/reload, open `http://SERVER:9100/login` in a signed-out
+browser: expect the existing login UI at `/#/login`, then chat at `/#/` after
+valid authentication. Revisit `/login` while authenticated and verify it returns
+to chat. Sign out and open `/#/chat/<existing-id>`; expect login without a loop.
+Accept the PWA update if offered. Runtime login success remains unverified until
+these server/browser checks pass.
 
 ## Phase 1 limits
 

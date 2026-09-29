@@ -96,6 +96,19 @@ def test_gateway_configuration_preserves_inference():
     assert "location /api/v1/" in conf and "proxy_set_header Upgrade $http_upgrade" in conf
     assert "location = /v1/stream" in conf and "location = /v1/streams/lookup" in conf
     assert "proxy_pass http://llama_backend" in conf
+    login = conf.split("location = /login {", 1)[1].split("}", 1)[0]
+    assert 'return 302 "/#/login";' in login
+    assert "proxy_pass" not in login
+    root = conf.split("location / {", 1)[1].split("}", 1)[0]
+    assert "proxy_pass http://llama_backend;" in root
+    api = conf.split("location /api/v1/ {", 1)[1].split("}", 1)[0]
+    assert "proxy_pass http://speed_backend;" in api
+    assert "proxy_set_header Connection $connection_upgrade;" in api
+    inference = conf.split("location /v1/ {", 1)[1].split("}", 1)[0]
+    assert "proxy_pass http://speed_backend;" in inference
+    for path in ("/v1/stream", "/v1/streams/lookup"):
+        block = conf.split(f"location = {path} {{", 1)[1].split("}", 1)[0]
+        assert "proxy_pass http://llama_backend;" in block
 
 
 def test_start_returns_task_handle_and_snapshot(client):

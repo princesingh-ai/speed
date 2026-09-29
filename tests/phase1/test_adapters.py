@@ -86,7 +86,7 @@ def test_real_local_mcp_stdio_and_failure_mapping():
         assert result["value"] == 42
         search = await runtime.call("search_internal_docs", {"query": "inspection"}, trace)
         assert search["result_count"] >= 1
-        with pytest.raises(Exception):
+        with pytest.raises(RuntimeError, match="^MCP tool failed$"):
             await runtime.call("calculator", {"a": 1, "b": 2, "operation": "invalid"}, trace)
         assert [e.event_type for e in bus.replay("t")].count("mcp.completed") == 2
         assert bus.replay("t")[-1].event_type == "mcp.failed"
@@ -163,3 +163,37 @@ def test_mcp_client_cleanup_on_error(monkeypatch):
     assert lifecycle == ["entered", "closed"]
     assert bus.replay("t")[-1].event_type == "mcp.failed"
     assert "private server failure" not in str(bus.replay("t"))
+
+
+@pytest.mark.parametrize("missing_tool,is_error,content,cleanup_fails", [
+    (False, True, None, False),
+    (False, False, None, False),
+    (True, False, None, False),
+    (False, True, None, True),
+])
+def test_mcp_mapped_failure_after_clean_exit(monkeypatch, missing_tool, is_error, content, cleanup_fails):
+    import mcp
+    from types import SimpleNamespace
+    exits = []
+
+    class Client:
+        def __init__(self, parameters):
+            pass
+        async def __aenter__(self):
+            return self
+        async def __aexit__(self, exc_type, exc, tb):
+            exits.append(exc_type)
+            if cleanup_fails:
+                raise OSError("cleanup failed")
+        async def list_tools(self):
+            return SimpleNamespace(tools=[] if missing_tool else [SimpleNamespace(name="calculator")])
+        async def call_tool(self, *args):
+            return SimpleNamespace(is_error=is_error, structured_content=content)
+
+    monkeypatch.setattr(mcp, "Client", Client)
+    expected = OSError if cleanup_fails else ValueError if missing_tool else RuntimeError
+    bus = EventBus()
+    with pytest.raises(expected):
+        asyncio.run(MCPRuntime().call("calculator", {}, Trace(bus, "t")))
+    assert exits == [None]
+    assert [event.event_type for event in bus.replay("t")] == ["mcp.started", "mcp.failed"]

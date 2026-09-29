@@ -757,7 +757,7 @@ class ChatStore implements ChatStreamHost, ChatFlowsHost {
 		this.cancelPreEncode();
 		const existing = conversationsStore.activeConversation;
 		const parent = conversationsStore.activeMessages.at(-1)?.id ?? existing?.currNode;
-		let assistant: DatabaseMessage | undefined;
+		let failedAssistant: DatabaseMessage | undefined;
 		try {
 			const convId = existing?.id ?? await conversationsStore.createConversation();
 			const parentId = parent ?? await DatabaseService.createRootMessage(convId);
@@ -766,10 +766,15 @@ class ChatStore implements ChatStreamHost, ChatFlowsHost {
 				type: MessageType.TEXT, parent: parentId
 			}, parentId);
 			const link: TaskLink = { conversationId: convId, userMessageId: user.id, ownerId: speed.ownerId };
-			assistant = await DatabaseService.createMessageBranch({
+			const assistant = await DatabaseService.createMessageBranch({
 				children: [], content: '', convId, role: MessageRole.ASSISTANT, timestamp: Date.now(),
 				type: MessageType.TEXT, parent: user.id, model: null, speedTask: link
 			}, user.id);
+			if (!assistant || !assistant.id || assistant.role !== MessageRole.ASSISTANT
+				|| assistant.convId !== convId || assistant.parent !== user.id) {
+				throw new Error('Assistant message was not created for this conversation turn.');
+			}
+			failedAssistant = assistant;
 			if (conversationsStore.activeConversation?.id === convId) {
 				conversationsStore.addMessageToActive(user);
 				conversationsStore.addMessageToActive(assistant);
@@ -778,10 +783,12 @@ class ChatStore implements ChatStreamHost, ChatFlowsHost {
 			conversationsStore.updateConversationTimestamp(convId);
 			if (!existing) await conversationsStore.applyTitleFromContent(convId, content);
 			const task = await startTask(content, speed.options, speed.token);
-			assistant.speedTask = { ...link, taskId: task.task_id };
-			await saveTaskMessage(assistant, assistant.speedTask);
+			const taskLink: TaskLink = { ...link, taskId: task.task_id };
+			assistant.speedTask = taskLink;
+			await saveTaskMessage(assistant, taskLink);
 		} catch (error) {
 			const detail = error instanceof Error ? error.message : 'Unable to create task.';
+			const assistant = failedAssistant;
 			if (assistant?.speedTask) await saveTaskMessage(assistant, { ...assistant.speedTask,
 				error: `${detail} Not retried automatically; the request may have reached the server.`
 			}).catch(() => this.showErrorDialog({ type: ErrorDialogType.SERVER, message: 'Unable to save this task in the browser. Keep this conversation open to retain its live task handle.' }));

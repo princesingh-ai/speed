@@ -9,6 +9,8 @@ export const URL_PARAMS = {
 } as const;
 
 export const ROUTES = {
+	/** Public sign-in route in the hash router. */
+	LOGIN: '#/login',
 	/** Chat base — for dynamic chat URLs use RouterService. */
 	CHAT: '#/chat',
 	/** MCP servers. */

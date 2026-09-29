@@ -8,7 +8,7 @@
 		displayedModel: string | null;
 		isRouter: boolean;
 		isLoading: boolean;
-		onRegenerate: (modelOverride?: string) => void;
+		onRegenerate?: (modelOverride?: string) => void;
 	}
 
 	let { displayedModel, isLoading, isRouter, onRegenerate }: Props = $props();
@@ -20,11 +20,13 @@
 	}
 </script>
 
-{#if isRouter}
+{#if isRouter && onRegenerate}
 	<ModelsSelectorDropdown
 		currentModel={pendingModel ?? displayedModel}
 		disabled={isLoading}
 		onModelChange={async (modelId: string, modelName: string) => {
+			const regenerate = onRegenerate;
+			if (!regenerate) return false;
 			const status = modelsStore.getModelStatus(modelId);
 
 			if (status !== ServerModelStatus.LOADED) {
@@ -37,7 +39,7 @@
 				}
 			}
 
-			onRegenerate(modelName);
+			regenerate(modelName);
 
 			return true;
 		}}
